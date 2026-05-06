@@ -1,0 +1,131 @@
+specVersion: 1.0.0
+indexerHints:
+  prune: auto
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: PreSale
+    network: sepolia
+    source:
+      address: "0xF24970354d7229Ca736E60d8d9F5E6F7FB5B36ef"
+      abi: PreSale
+      startBlock: 7533565
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - BlacklistUpdated
+        - BurnWalletUpdated
+        - BuyEnableUpdated
+        - OwnershipTransferStarted
+        - OwnershipTransferred
+        - PlatformWalletUpdated
+        - PricingUpdated
+        - ProjectWalletUpdated
+        - PurchasedWithClaimAmount
+        - PurchasedWithETH
+        - PurchasedWithETHForNFT
+        - PurchasedWithToken
+        - PurchasedWithTokenForNFT
+        - RoundCreated
+        - RoundUpdated
+        - SignerUpdated
+        - TokenDataAdded
+        - TokensAccessUpdated
+      abis:
+        - name: PreSale
+          file: ./abis/PreSale.json
+      eventHandlers:
+        - event: BlacklistUpdated(address,bool)
+          handler: handleBlacklistUpdated
+        - event: BurnWalletUpdated(address,address)
+          handler: handleBurnWalletUpdated
+        - event: BuyEnableUpdated(bool,bool)
+          handler: handleBuyEnableUpdated
+        - event: OwnershipTransferStarted(indexed address,indexed address)
+          handler: handleOwnershipTransferStarted
+        - event: OwnershipTransferred(indexed address,indexed address)
+          handler: handleOwnershipTransferred
+        - event: PlatformWalletUpdated(address,address)
+          handler: handlePlatformWalletUpdated
+        - event: PricingUpdated(uint256,uint256)
+          handler: handlePricingUpdated
+        - event: ProjectWalletUpdated(address,address)
+          handler: handleProjectWalletUpdated
+        - event:
+            PurchasedWithClaimAmount(indexed address,uint256,address,indexed uint32,indexed
+            uint256,uint256)
+          handler: handlePurchasedWithClaimAmount
+        - event: PurchasedWithETH(indexed address,string,uint256,indexed
+            uint32,address[],uint256[],indexed uint256,uint256)
+          handler: handlePurchasedWithETH
+        - event:
+            PurchasedWithETHForNFT(indexed address,string,uint256,uint256,indexed
+            uint32,address[],uint256[],uint256,uint256[])
+          handler: handlePurchasedWithETHForNFT
+        - event: PurchasedWithToken(indexed address,uint256,indexed
+            address,string,uint256,uint256,indexed uint32,address[],uint256[])
+          handler: handlePurchasedWithToken
+        - event: PurchasedWithTokenForNFT(indexed address,uint256,indexed
+            address,string,uint256,indexed uint32,address[],uint256[],uint256,uint256[])
+          handler: handlePurchasedWithTokenForNFT
+        - event: RoundCreated(indexed uint32,(uint256,uint256,uint256))
+          handler: handleRoundCreated
+        - event: RoundUpdated(indexed uint32,(uint256,uint256,uint256))
+          handler: handleRoundUpdated
+        - event: SignerUpdated(address,address)
+          handler: handleSignerUpdated
+        - event: TokenDataAdded(address,(address,uint8,uint8,uint256))
+          handler: handleTokenDataAdded
+        - event: TokensAccessUpdated(indexed uint32,indexed address,indexed bool,uint256)
+          handler: handleTokensAccessUpdated
+      file: ./src/pre-sale.ts
+  - kind: ethereum
+    name: Claims
+    network: sepolia
+    source:
+      address: "0xD90DA3274109B095C7d7BCa5612572336AbBd3DA"
+      abi: Claims
+      startBlock: 7533447
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - ClaimRevoked
+        - ClaimSet
+        - ClaimsUpdated
+        - FundsClaimed
+        - FundsWalletUpdated
+        - PresaleUpdated
+        - RoleAdminChanged
+        - RoleGranted
+        - RoleRevoked
+        - ClaimsSignerUpdated
+      abis:
+        - name: Claims
+          file: ./abis/Claims.json
+      eventHandlers:
+        - event: ClaimRevoked(address,address,uint256,uint32)
+          handler: handleClaimRevoked
+        - event: ClaimSet(indexed address,indexed uint32,(address,uint256))
+          handler: handleClaimSet
+        - event: ClaimsUpdated(address,address,uint256,uint32)
+          handler: handleClaimsUpdated
+        - event: FundsClaimed(indexed address,indexed uint32,address,uint256)
+          handler: handleFundsClaimed
+        - event: FundsWalletUpdated(address,address)
+          handler: handleFundsWalletUpdated
+        - event: PresaleUpdated(address,address)
+          handler: handlePresaleUpdated
+        - event: RoleAdminChanged(indexed bytes32,indexed bytes32,indexed bytes32)
+          handler: handleRoleAdminChanged
+        - event: RoleGranted(indexed bytes32,indexed address,indexed address)
+          handler: handleRoleGranted
+        - event: RoleRevoked(indexed bytes32,indexed address,indexed address)
+          handler: handleRoleRevoked
+        - event: SignerUpdated(address,address)
+          handler: handleSignerUpdated
+      file: ./src/claims.ts

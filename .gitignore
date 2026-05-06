@@ -1,0 +1,58 @@
+# =====================
+# Dependencies
+# =====================
+node_modules/
+
+# =====================
+# Environment
+# =====================
+.env
+.env.* 
+
+# =====================
+# Foundry
+# =====================
+out/
+cache/
+broadcast/
+artifacts/
+
+# =====================
+# Hardhat
+# =====================
+artifacts/
+cache/
+typechain/
+typechain-types/
+
+# =====================
+# Graph (Subgraph)
+# =====================
+Graph/build/
+Graph/generated/
+Graph/.graph/
+Graph/cache/
+
+# =====================
+# Logs
+# =====================
+*.log
+
+# =====================
+# Coverage / testing
+# =====================
+coverage/
+coverage.json
+
+# =====================
+# OS / Editor
+# =====================
+.DS_Store
+.vscode/
+.idea/
+
+# =====================
+# Misc build outputs
+# =====================
+dist/
+build/
