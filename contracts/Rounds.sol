@@ -23,10 +23,12 @@ abstract contract Rounds is IRounds, TokenRegistry {
     /// @custom:startTime The start time of round
     /// @custom:endTime The end time of round
     /// @custom:price The price in usd per token
+    /// @custom:isGemsRound A flag indicating if the round is for GEMS tokens
     struct RoundData {
         uint256 startTime;
         uint256 endTime;
         uint256 price;
+        bool isGemsRound;
     }
 
     /// @dev The round index of last round created
@@ -94,7 +96,8 @@ abstract contract Rounds is IRounds, TokenRegistry {
     /// @param startTime The startTime of the round
     /// @param endTime The endTime of the round
     /// @param price The presale token price in 18 decimals, because our calculations returns a value in 36 decimals and to get returning value in 18 decimals we divide by round price
-    function createNewRound(uint256 startTime, uint256 endTime, uint256 price) external onlyOwner {
+    /// @param isGemsRound A flag indicating if the round is for GEMS tokens
+    function createNewRound(uint256 startTime, uint256 endTime, uint256 price, bool isGemsRound) external onlyOwner {
         RoundData memory prevRoundData = rounds[_roundIndex];
         uint32 newRound = ++_roundIndex;
 
@@ -107,7 +110,7 @@ abstract contract Rounds is IRounds, TokenRegistry {
         }
 
         _verifyRound(startTime, endTime, price);
-        prevRoundData = RoundData({ startTime: startTime, endTime: endTime, price: price });
+        prevRoundData = RoundData({ startTime: startTime, endTime: endTime, price: price, isGemsRound: isGemsRound });
         rounds[newRound] = prevRoundData;
 
         emit RoundCreated({ newRound: newRound, roundData: prevRoundData });
@@ -184,7 +187,7 @@ abstract contract Rounds is IRounds, TokenRegistry {
         }
 
         _verifyRound(startTime, endTime, price);
-        rounds[round] = RoundData({ startTime: startTime, endTime: endTime, price: price });
+        rounds[round] = RoundData({ startTime: startTime, endTime: endTime, price: price, isGemsRound: rounds[round].isGemsRound });
 
         emit RoundUpdated({ round: round, roundData: rounds[round] });
     }

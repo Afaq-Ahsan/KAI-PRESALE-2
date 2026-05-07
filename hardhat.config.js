@@ -18,11 +18,11 @@ module.exports = {
         ]
     },
     networks: {
-        mainnet: {
-            url: process.env.URL_MAIN,
-            accounts: [process.env.PRIVATE_KEY_MAIN],
-            chainId: 1
-        },
+        // mainnet: {
+        //     url: process.env.URL_MAIN,
+        //     accounts: [process.env.PRIVATE_KEY_MAIN],
+        //     chainId: 1
+        // },
         sepolia: {
             url: process.env.URL_SEPOLIA,
             accounts: [process.env.PRIVATE_KEY_SEPOLIA]

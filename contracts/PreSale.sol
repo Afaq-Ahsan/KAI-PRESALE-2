@@ -41,7 +41,7 @@ contract PreSale is Rounds, ReentrancyGuardTransient {
     }
 
     /// @dev To achieve return value of required decimals during calculation
-    uint256 private constant NORMALIZARION_FACTOR = 1e30;
+    uint256 private constant NORMALIZATION_FACTOR = 1e30;
 
     /// @dev The constant value helps in calculating project amount
     uint256 private constant PROJECT_PERCENTAGE_PPM = 630_000;
@@ -63,6 +63,24 @@ contract PreSale is Rounds, ReentrancyGuardTransient {
 
     /// @dev The max leader's wallet length
     uint256 private constant LEADERS_LENGTH = 5;
+
+    /// @dev To achieve return value of required decimals
+    uint256 private constant NORMALIZATION = 1e20;
+
+    /// @dev The constant value helps in calculating discount
+    uint256 public constant DISCOUNT_PPM = 200_000;
+
+    /// @notice The maximum amount of limit in usd that can be purchased in gems round
+    uint256 public gemsRoundLimit = 2000e6;
+
+    /// @notice The maximum amount in usd in which tokens that can be purchased
+    uint256 public lowerLimit = 5000e6;
+
+    /// @notice The maximum amount of higher limit in usd where tokens that can be purchased
+    uint256 public upperLimit = 50000e6;
+
+    /// @notice The token address totalRaised in USD
+    uint256 public totalRaised;
 
     /// @notice The maximum number of tokens that will be sold in presale
     uint256 public immutable maxCap;
@@ -99,6 +117,12 @@ contract PreSale is Rounds, ReentrancyGuardTransient {
 
     /// @notice Gives info about address's permission
     mapping(address => bool) public blacklistAddress;
+
+    /// @notice Gives info about user's total investment in USD
+    mapping(address => uint256) public lowerLimitInvestment;
+
+    /// @notice Provides information about purchasing tokens using Gems in USD.
+    mapping(address => uint256) public gemsRoundBuying;
 
     /// @dev Emitted when token is purchased with ETH
     event PurchasedWithETH(
@@ -152,6 +176,15 @@ contract PreSale is Rounds, ReentrancyGuardTransient {
 
     /// @dev Emitted when buying access changes
     event BuyEnableUpdated(bool oldAccess, bool newAccess);
+
+    /// @dev Emitted when gems round limit is updated
+    event GensRoundLimitUpdated(uint256 oldLimit, uint256 newLimit);
+
+    /// @dev Emitted when lower limit is updated
+    event LowerLimitUpdated(uint256 oldLimit, uint256 newLimit);
+
+    /// @dev Emitted when upper limit is updated
+    event UpperLimitUpdated(uint256 oldLimit, uint256 newLimit);
 
     /// @notice Thrown when address is blacklisted
     error Blacklisted();
@@ -331,6 +364,33 @@ contract PreSale is Rounds, ReentrancyGuardTransient {
         blacklistAddress[which] = access;
     }
 
+    function setGemsRoundLimit(uint256 newLimit) external onlyOwner {
+        if (gemsRoundLimit == newLimit) {
+            revert IdenticalValue();
+        }
+
+        gemsRoundLimit = newLimit;
+        emit GensRoundLimitUpdated({ oldLimit: gemsRoundLimit, newLimit: newLimit });
+    }
+
+    function setLowerLimit(uint256 newLimit) external onlyOwner {
+        if (lowerLimit == newLimit) {
+            revert IdenticalValue();
+        }
+
+        lowerLimit = newLimit;
+        emit LowerLimitUpdated({ oldLimit: lowerLimit, newLimit: newLimit });
+    }
+
+    function setUpperLimit(uint256 newLimit) external onlyOwner {
+        if (upperLimit == newLimit) {
+            revert IdenticalValue();
+        }
+
+        upperLimit = newLimit;
+        emit UpperLimitUpdated({ oldLimit: upperLimit, newLimit: newLimit });
+    }
+
     /// @notice Purchases presale token with ETH
     /// @param code The code is used to verify signature of the user
     /// @param round The round in which user wants to purchase
@@ -353,7 +413,7 @@ contract PreSale is Rounds, ReentrancyGuardTransient {
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) external payable nonReentrant canBuy {
+     ) external payable nonReentrant canBuy {
         // The input must have been signed by the presale signer
         _validatePurchaseWithETH(msg.value, round, deadline, code, v, r, s);
         uint256 roundPrice = _getRoundPriceForToken(msg.sender, indexes, round, ETH);
@@ -362,6 +422,12 @@ contract PreSale is Rounds, ReentrancyGuardTransient {
         if (tokenInfo.latestPrice == 0) {
             revert PriceNotFound();
         }
+
+        uint256 ethInUsdt = (msg.value * tokenInfo.latestPrice) / NORMALIZATION;
+
+        roundPrice = _checkBuyingLimitations(msg.sender, ethInUsdt, roundPrice);
+
+        totalRaised += ethInUsdt;
 
         TransferInfo memory transferInfo = _calculateTransferAmounts(msg.value, leaders, percentages);
         uint256 toReturn = _calculateAndUpdateTokenAmount(
@@ -440,6 +506,26 @@ contract PreSale is Rounds, ReentrancyGuardTransient {
             referenceTokenPrice,
             referenceNormalizationFactor
         );
+
+        if (latestPrice == 0) {
+            revert PriceNotFound();
+        }
+
+        uint256 amount = (purchaseAmount * latestPrice) * 10 ** normalizationFactor;
+        uint256 ethInUsdt = amount / NORMALIZATION_FACTOR;
+
+        if (rounds[round].isGemsRound) {
+
+            if (gemsRoundBuying[msg.sender] + ethInUsdt > gemsRoundLimit) {
+                // gems round sale is only for up to 2000 USDT per user
+                revert InvalidPurchase();
+            }
+
+            gemsRoundBuying[msg.sender] += ethInUsdt;
+        } else {
+            roundPrice = _checkBuyingLimitations(msg.sender, ethInUsdt, roundPrice);
+        }
+
         TransferInfo memory transferInfo = _calculateTransferAmounts(purchaseAmount, leaders, percentages);
         uint256 toReturn = _calculateAndUpdateTokenAmount(purchaseAmount, latestPrice, normalizationFactor, roundPrice);
 
@@ -614,6 +700,23 @@ contract PreSale is Rounds, ReentrancyGuardTransient {
         totalPurchases += newPurchase;
     }
 
+    /// @dev checks the purchasing logic
+    function _checkBuyingLimitations(address user, uint256 ethInUsdt, uint256 roundPrice) internal returns (uint256) {
+        if (ethInUsdt < upperLimit) {
+            // Small buyer logic
+            if (lowerLimitInvestment[user] + ethInUsdt > lowerLimit) {
+                revert InvalidPurchase();
+            }
+
+            lowerLimitInvestment[user] += ethInUsdt;
+
+            return roundPrice; // no discount
+        } else {
+            // Whale logic (apply discount)
+            return (roundPrice * (PPM - DISCOUNT_PPM)) / PPM;
+        }
+    }
+
     /// @dev Validates round, deadline and signature
     function _validatePurchaseWithETH(
         uint256 amount,
@@ -659,6 +762,7 @@ contract PreSale is Rounds, ReentrancyGuardTransient {
 
         for (uint256 i; i < indexLength; ++i) {
             if (indexLength != i + 1) {
+               
                 if (indexes[i] >= indexes[i + 1]) {
                     revert ArrayNotSorted();
                 }
@@ -676,7 +780,7 @@ contract PreSale is Rounds, ReentrancyGuardTransient {
         uint256 endTime = v1 > v2 ? v1 : v2;
 
         if (lockedAmount >= lockup.minStakeAmount() || block.timestamp < endTime) {
-           
+          
             if (round == 1) {
                 roundPrice -= ((roundPrice * FIRST_ROUND_PPM) / PPM);
             } else {
@@ -709,12 +813,14 @@ contract PreSale is Rounds, ReentrancyGuardTransient {
     ) private view returns (uint256, uint8) {
         TokenInfo memory tokenInfo = getLatestPrice(token);
         if (tokenInfo.latestPrice != 0) {
+           
             if (referenceTokenPrice != 0 || referenceNormalizationFactor != 0) {
                 revert CodeSyncIssue();
             }
         }
         //  If price feed isn't available,we fallback to the reference price
         if (tokenInfo.latestPrice == 0) {
+          
             if (referenceTokenPrice == 0 || referenceNormalizationFactor == 0) {
                 revert ZeroValue();
             }

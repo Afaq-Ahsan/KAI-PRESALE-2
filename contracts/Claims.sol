@@ -423,7 +423,7 @@ contract Claims is IClaims, AccessControl, ReentrancyGuardTransient {
             revert RoundNotEnabled();
         }
 
-        (, uint256 endTime, ) = presale.rounds(round);
+        (, uint256 endTime,, ) = presale.rounds(round);
 
         if (block.timestamp < endTime) {
             revert RoundNotEnded();
