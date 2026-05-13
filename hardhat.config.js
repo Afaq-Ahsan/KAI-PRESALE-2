@@ -25,10 +25,11 @@ module.exports = {
         // },
         sepolia: {
             url: process.env.URL_SEPOLIA,
-            accounts: [process.env.PRIVATE_KEY_SEPOLIA]
+            accounts: [process.env.PRIVATE_KEY_SEPOLIA],
+            chainId: 11155111
         }
     },
     etherscan: {
-        apiKey: process.env.API_KEY
+        apiKey: process.env.ETHERSCAN_API_KEY // ✅ single global key
     }
 };

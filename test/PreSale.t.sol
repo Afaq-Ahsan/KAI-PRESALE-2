@@ -30,7 +30,9 @@ contract PreSaleTest is Test {
     uint32 round = 2;
     uint256 minAmount = 1;
 
+    // uint256 roundPrice = 1000000000000000000;
     uint256 roundPrice = 1000000000000000000;
+    uint256 roundPrice2 = 2000000000000000000;
 
     IERC20 USDT;
     IERC20 USDC;
@@ -121,7 +123,9 @@ contract PreSaleTest is Test {
         claimsContractAddress.grantRole(claimsContractAddress.COMMISSIONS_MANAGER(), owner);
 
         vm.startPrank(owner);
-        preSale.createNewRound(block.timestamp, block.timestamp + 10 minutes, roundPrice, false); //creating new round
+        preSale.createNewRound(block.timestamp, block.timestamp + 10 minutes, roundPrice, false, false); //creating new round
+
+
         IERC20[] memory tokens = new IERC20[](4);
         tokens[0] = IERC20(ETH);
         tokens[1] = USDT;
@@ -182,164 +186,154 @@ contract PreSaleTest is Test {
         vm.stopPrank();
     }
 
-    // function testPurchaseTokenWithETHunderLowerLimit() public {
-    //     uint256 expectedProjectFunds;
-    //     uint256 expectedPlatformfunds;
-    //     uint256 expectedBurnFunds;
-    //     uint256 expectedClaimsFunds;
-    //     uint256 expectedPendingClaims;
-    //     uint256 expectedTotalPercentage = 0;
+    function testPurchaseTokenWithETHunderLowerLimit() public {
+        uint256 expectedProjectFunds;
+        uint256 expectedPlatformfunds;
+        uint256 expectedBurnFunds;
+        uint256 expectedClaimsFunds;
+        uint256 expectedPendingClaims;
+        uint256 expectedTotalPercentage = 0;
 
-    //     uint256 leaderPercentageAmount = (percentages[0]) +
-    //         (percentages[1]) +
-    //         (percentages[2]) +
-    //         (percentages[3]) +
-    //         (percentages[4]);
+        uint256 leaderPercentageAmount = (percentages[0]) +
+            (percentages[1]) +
+            (percentages[2]) +
+            (percentages[3]) +
+            (percentages[4]);
 
-    //     uint256[] memory previousLeaderClaims = new uint256[](leaders.length);
+        uint256[] memory previousLeaderClaims = new uint256[](leaders.length);
 
-    //     (uint8 v, bytes32 r, bytes32 s) = _signWithETH();
-    //     uint256 deadline = block.timestamp + 2 minutes;
+        (uint8 v, bytes32 r, bytes32 s) = _signWithETH();
+        uint256 deadline = block.timestamp + 2 minutes;
 
-    //     // uint256 investment = 0.105 ether;
-    //     uint256 investment = 2 ether;
+        // uint256 investment = 0.105 ether;
+        uint256 investment = 2 ether;
 
-    //     vm.startPrank(signer);
-    //     (v, r, s) = _signWithETH();
-    //     vm.stopPrank();
+        vm.startPrank(signer);
+        (v, r, s) = _signWithETH();
+        vm.stopPrank();
 
-    //     _lockupStake();
-    //     _subscribe();
-    //     console.log("subscribed");
-    //     uint256[] memory indexes = new uint256[](1);
-    //     indexes[0] = 0;
+        _lockupStake();
+        _subscribe();
+        console.log("subscribed");
+        uint256[] memory indexes = new uint256[](1);
+        indexes[0] = 0;
 
-    //     // //leader previous claim
-    //     for (uint256 i = 0; i < leaders.length; ++i) {
-    //         previousLeaderClaims[i] = claimsContractAddress.pendingClaims(leaders[i], round, IERC20(ETH));
-    //     }
+        // //leader previous claim
+        for (uint256 i = 0; i < leaders.length; ++i) {
+            previousLeaderClaims[i] = claimsContractAddress.pendingClaims(leaders[i], round, IERC20(ETH));
+        }
 
-    //     uint256 sumPercentage;
-    //     uint256 remainingPercentageAmount;
-    //     for (uint256 j; j < percentages.length; ++j) {
-    //         sumPercentage += percentages[j];
-    //     }
+        uint256 sumPercentage;
+        uint256 remainingPercentageAmount;
+        for (uint256 j; j < percentages.length; ++j) {
+            sumPercentage += percentages[j];
+        }
 
-    //     expectedClaimsFunds = (investment * 250_000) / PPM;
+        expectedClaimsFunds = (investment * 250_000) / PPM;
 
-    //     uint256 sumPercentageAmount = (investment * sumPercentage) / PPM;
+        uint256 sumPercentageAmount = (investment * sumPercentage) / PPM;
 
-    //     if (sumPercentage < 250_000) {
-    //         remainingPercentageAmount = expectedClaimsFunds - sumPercentageAmount;
-    //     }
-    //     expectedClaimsFunds -= remainingPercentageAmount;
-    //     expectedPlatformfunds = remainingPercentageAmount;
+        if (sumPercentage < 250_000) {
+            remainingPercentageAmount = expectedClaimsFunds - sumPercentageAmount;
+        }
+        expectedClaimsFunds -= remainingPercentageAmount;
+        expectedPlatformfunds = remainingPercentageAmount;
 
-    //     expectedProjectFunds = (investment * 630000) / PPM;
-    //     expectedPlatformfunds += (investment * 100000) / PPM;
-    //     expectedBurnFunds += (investment * 20000) / PPM;
+        expectedProjectFunds = (investment * 630000) / PPM;
+        expectedPlatformfunds += (investment * 100000) / PPM;
+        expectedBurnFunds += (investment * 20000) / PPM;
 
-    //     vm.startPrank(user);
-    //     preSale.purchaseTokenWithETH{ value: investment }(
-    //         code,
-    //         round,
-    //         deadline,
-    //         minAmount,
-    //         indexes,
-    //         leaders,
-    //         percentages,
-    //         v,
-    //         r,
-    //         s
-    //     );
-    //     console.log("function run successdully");
-    //     for (uint256 i = 0; i < leaders.length; ++i) {
-    //         expectedPendingClaims = (investment * percentages[i]) / PPM;
-    //         expectedTotalPercentage += percentages[i];
-    //         assertEq(
-    //             claimsContractAddress.pendingClaims(leaders[i], round, IERC20(ETH)) - previousLeaderClaims[i],
-    //             expectedPendingClaims,
-    //             "leader fund amount "
-    //         );
-    //     }
-    //     assertEq(expectedTotalPercentage, leaderPercentageAmount, "leader percentage contract");
-    // }
+        vm.startPrank(user);
+        preSale.purchaseTokenWithETH{ value: investment }(
+            code,
+            round,
+            deadline,
+            minAmount,
+            indexes,
+            leaders,
+            percentages,
+            v,
+            r,
+            s
+        );
+        console.log("function run successdully");
+        for (uint256 i = 0; i < leaders.length; ++i) {
+            expectedPendingClaims = (investment * percentages[i]) / PPM;
+            expectedTotalPercentage += percentages[i];
+            assertEq(
+                claimsContractAddress.pendingClaims(leaders[i], round, IERC20(ETH)) - previousLeaderClaims[i],
+                expectedPendingClaims,
+                "leader fund amount "
+            );
+        }
+        assertEq(expectedTotalPercentage, leaderPercentageAmount, "leader percentage contract");
+    }
 
-    // function testPurchaseTokenWithETHbeyondLowerLimit() public {
-    //     uint256 expectedProjectFunds;
-    //     uint256 expectedPlatformfunds;
-    //     uint256 expectedBurnFunds;
-    //     uint256 expectedClaimsFunds;
+    function testPurchaseTokenWithETHbeyondLowerLimit() public {
+        uint256 expectedProjectFunds;
+        uint256 expectedPlatformfunds;
+        uint256 expectedBurnFunds;
+        uint256 expectedClaimsFunds;
 
-    //     uint256[] memory previousLeaderClaims = new uint256[](leaders.length);
+        uint256[] memory previousLeaderClaims = new uint256[](leaders.length);
 
-    //     (uint8 v, bytes32 r, bytes32 s) = _signWithETH();
-    //     uint256 deadline = block.timestamp + 2 minutes;
+        (uint8 v, bytes32 r, bytes32 s) = _signWithETH();
+        uint256 deadline = block.timestamp + 2 minutes;
 
-    //     // uint256 investment = 0.105 ether;
-    //     uint256 investment = 4 ether;
+        // uint256 investment = 0.105 ether;
+        uint256 investment = 4 ether;
 
-    //     vm.startPrank(signer);
-    //     (v, r, s) = _signWithETH();
-    //     vm.stopPrank();
+        vm.startPrank(signer);
+        (v, r, s) = _signWithETH();
+        vm.stopPrank();
 
-    //     _lockupStake();
-    //     _subscribe();
-    //     console.log("subscribed");
-    //     uint256[] memory indexes = new uint256[](1);
-    //     indexes[0] = 0;
+        _lockupStake();
+        _subscribe();
+        console.log("subscribed");
+        uint256[] memory indexes = new uint256[](1);
+        indexes[0] = 0;
 
-    //     // //leader previous claim
-    //     for (uint256 i = 0; i < leaders.length; ++i) {
-    //         previousLeaderClaims[i] = claimsContractAddress.pendingClaims(leaders[i], round, IERC20(ETH));
-    //     }
+        // //leader previous claim
+        for (uint256 i = 0; i < leaders.length; ++i) {
+            previousLeaderClaims[i] = claimsContractAddress.pendingClaims(leaders[i], round, IERC20(ETH));
+        }
 
-    //     uint256 sumPercentage;
-    //     uint256 remainingPercentageAmount;
-    //     for (uint256 j; j < percentages.length; ++j) {
-    //         sumPercentage += percentages[j];
-    //     }
+        uint256 sumPercentage;
+        uint256 remainingPercentageAmount;
+        for (uint256 j; j < percentages.length; ++j) {
+            sumPercentage += percentages[j];
+        }
 
-    //     expectedClaimsFunds = (investment * 250_000) / PPM;
+        expectedClaimsFunds = (investment * 250_000) / PPM;
 
-    //     uint256 sumPercentageAmount = (investment * sumPercentage) / PPM;
+        uint256 sumPercentageAmount = (investment * sumPercentage) / PPM;
 
-    //     if (sumPercentage < 250_000) {
-    //         remainingPercentageAmount = expectedClaimsFunds - sumPercentageAmount;
-    //     }
-    //     expectedClaimsFunds -= remainingPercentageAmount;
-    //     expectedPlatformfunds = remainingPercentageAmount;
+        if (sumPercentage < 250_000) {
+            remainingPercentageAmount = expectedClaimsFunds - sumPercentageAmount;
+        }
+        expectedClaimsFunds -= remainingPercentageAmount;
+        expectedPlatformfunds = remainingPercentageAmount;
 
-    //     expectedProjectFunds = (investment * 630000) / PPM;
-    //     expectedPlatformfunds += (investment * 100000) / PPM;
-    //     expectedBurnFunds += (investment * 20000) / PPM;
+        expectedProjectFunds = (investment * 630000) / PPM;
+        expectedPlatformfunds += (investment * 100000) / PPM;
+        expectedBurnFunds += (investment * 20000) / PPM;
 
-    //     vm.startPrank(user);
-    //     vm.expectRevert(abi.encodeWithSignature("InvalidPurchase()"));
-    //     preSale.purchaseTokenWithETH{ value: investment }(
-    //         code,
-    //         round,
-    //         deadline,
-    //         minAmount,
-    //         indexes,
-    //         leaders,
-    //         percentages,
-    //         v,
-    //         r,
-    //         s
-    //     );
-    //     console.log("function run successdully");
-    //     // for (uint256 i = 0; i < leaders.length; ++i) {
-    //     //     expectedPendingClaims = (investment * percentages[i]) / PPM;
-    //     //     expectedTotalPercentage += percentages[i];
-    //     //     assertEq(
-    //     //         claimsContractAddress.pendingClaims(leaders[i], round, IERC20(ETH)) - previousLeaderClaims[i],
-    //     //         expectedPendingClaims,
-    //     //         "leader fund amount "
-    //     //     );
-    //     // }
-    //     // assertEq(expectedTotalPercentage, leaderPercentageAmount, "leader percentage contract");
-    // }
+        vm.startPrank(user);
+        vm.expectRevert(abi.encodeWithSignature("InvalidPurchase()"));
+        preSale.purchaseTokenWithETH{ value: investment }(
+            code,
+            round,
+            deadline,
+            minAmount,
+            indexes,
+            leaders,
+            percentages,
+            v,
+            r,
+            s
+        );
+        console.log("function run successdully");
+    }
 
     function testPurchaseTokenWithETHcompleting5kinmultiplebuying() public {
         (uint8 v, bytes32 r, bytes32 s) = _signWithETH();
@@ -399,7 +393,7 @@ contract PreSaleTest is Test {
 
         console2.log("after invested second time : ", invested2);
 
-        uint256 investment3 = 0.043 ether;
+        uint256 investment3 = 0.1 ether;
 
         vm.expectRevert(abi.encodeWithSignature("InvalidPurchase()"));
         vm.startPrank(user);
@@ -417,83 +411,272 @@ contract PreSaleTest is Test {
         );
     }
 
-    // function testPurchaseTokenWithUSDT() public {
-    //     uint256 expectedProjectFunds;
-    //     uint256 expectedPlatformfunds;
-    //     uint256 expectedBurnFunds;
-    //     uint256 expectedClaimsFunds;
+    function testPurchaseTokenWithOtherThanGemsInGemsRound() public {
+        uint256 expectedProjectFunds;
+        uint256 expectedPlatformfunds;
+        uint256 expectedBurnFunds;
+        uint256 expectedClaimsFunds;
 
-    //     uint256[] memory previousLeaderClaims = new uint256[](leaders.length);
+        uint256[] memory previousLeaderClaims = new uint256[](leaders.length);
 
-    //     (uint8 v, bytes32 r, bytes32 s) = _signWithToken();
-    //     uint256 deadline = block.timestamp + 2 minutes;
+        (uint8 v, bytes32 r, bytes32 s) = _signWithETH();
+        uint256 deadline = block.timestamp + 2 minutes;
 
-    //     uint256 investment = 0.105 ether;
+        uint256 investment = 2 ether;
 
-    //     vm.startPrank(signer);
-    //     (v, r, s) = _signWithToken();
-    //     vm.stopPrank();
+        vm.warp(block.timestamp + 1 hours);
+        vm.startPrank(owner);
+        preSale.createNewRound(block.timestamp, block.timestamp + 10 minutes, roundPrice, true,false);
 
-    //     _lockupStake();
-    //     _subscribe();
-    //     uint256[] memory indexes = new uint256[](1);
-    //     indexes[0] = 0;
+        vm.startPrank(signer);
+        (v, r, s) = _signWithETH();
+        vm.stopPrank();
 
-    //     //leader previous claim
-    //     for (uint256 i = 0; i < leaders.length; ++i) {
-    //         previousLeaderClaims[i] = claimsContractAddress.pendingClaims(leaders[i], round, IERC20(USDT));
-    //     }
+        _lockupStake();
+        _subscribe();
+        console.log("subscribed");
+        uint256[] memory indexes = new uint256[](1);
+        indexes[0] = 0;
 
-    //     uint256 sumPercentage;
-    //     uint256 remainingPercentageAmount;
-    //     for (uint256 j; j < percentages.length; ++j) {
-    //         sumPercentage += percentages[j];
-    //     }
+        //leader previous claim
+        for (uint256 i = 0; i < leaders.length; ++i) {
+            previousLeaderClaims[i] = claimsContractAddress.pendingClaims(leaders[i], round, IERC20(ETH));
+        }
 
-    //     expectedClaimsFunds = (investment * 250_000) / PPM;
-    //     uint256 sumPercentageAmount = (investment * sumPercentage) / PPM;
+        uint256 sumPercentage;
+        uint256 remainingPercentageAmount;
+        for (uint256 j; j < percentages.length; ++j) {
+            sumPercentage += percentages[j];
+        }
 
-    //     if (sumPercentage < 250_000) {
-    //         remainingPercentageAmount = expectedClaimsFunds - sumPercentageAmount;
-    //     }
-    //     expectedClaimsFunds -= remainingPercentageAmount;
-    //     expectedPlatformfunds = remainingPercentageAmount;
+        expectedClaimsFunds = (investment * 250_000) / PPM;
 
-    //     expectedProjectFunds = (investment * 630000) / PPM;
-    //     expectedPlatformfunds += (investment * 100000) / PPM;
-    //     expectedBurnFunds += (investment * 20000) / PPM;
+        uint256 sumPercentageAmount = (investment * sumPercentage) / PPM;
 
-    //     vm.startPrank(user);
-    //     USDT.forceApprove(address(preSale), USDT.balanceOf(user));
-    //     preSale.purchaseTokenWithToken(
-    //         USDT,
-    //         0,
-    //         0,
-    //         100000000,
-    //         minAmount,
-    //         indexes,
-    //         leaders,
-    //         percentages,
-    //         code,
-    //         round,
-    //         deadline,
-    //         v,
-    //         r,
-    //         s
-    //     );
-    //     vm.stopPrank();
+        if (sumPercentage < 250_000) {
+            remainingPercentageAmount = expectedClaimsFunds - sumPercentageAmount;
+        }
 
-    //     vm.warp(block.timestamp + 100 days);
-    //     claimsContractAddress.grantRole(claimsContractAddress.COMMISSIONS_MANAGER(), address(this));
-    //     claimsContractAddress.enableClaims(2, true);
+        expectedClaimsFunds -= remainingPercentageAmount;
+        expectedPlatformfunds = remainingPercentageAmount;
 
-    //     IERC20[] memory tokens = new IERC20[](1);
-    //     tokens[0] = USDT;
+        expectedProjectFunds = (investment * 630000) / PPM;
+        expectedPlatformfunds += (investment * 100000) / PPM;
+        expectedBurnFunds += (investment * 20000) / PPM;
 
-    //     vm.startPrank(0x19A865ab3A6E9DD7ac716891B0080b2cB3ffb9fa);
-    //     claimsContractAddress.claim(2, tokens);
-    //     vm.stopPrank();
-    // }
+        vm.expectRevert(abi.encodeWithSignature("PurchaseOnlyAllowedWithGems()"));
+        vm.startPrank(user);
+        preSale.purchaseTokenWithETH{ value: investment }(
+            code,
+            3,
+            deadline,
+            minAmount,
+            indexes,
+            leaders,
+            percentages,
+            v,
+            r,
+            s
+        );
+        console.log("function run successdully");
+    }
+
+    function testPurchaseTokenWithETHSurpasing50KinOrderToGotDiscount() public {
+        uint256 expectedProjectFunds;
+        uint256 expectedPlatformfunds;
+        uint256 expectedBurnFunds;
+        uint256 expectedClaimsFunds;
+
+        uint256[] memory previousLeaderClaims = new uint256[](leaders.length);
+
+        (uint8 v, bytes32 r, bytes32 s) = _signWithETH();
+        uint256 deadline = block.timestamp + 2 minutes;
+
+        // uint256 investment = 1 ether;
+        uint256 investment = 22 ether;
+
+        vm.startPrank(signer);
+        (v, r, s) = _signWithETH();
+        vm.stopPrank();
+
+        _lockupStake();
+        _subscribe();
+        console.log("subscribed");
+        uint256[] memory indexes = new uint256[](1);
+        indexes[0] = 0;
+
+        // //leader previous claim
+        for (uint256 i = 0; i < leaders.length; ++i) {
+            previousLeaderClaims[i] = claimsContractAddress.pendingClaims(leaders[i], round, IERC20(ETH));
+        }
+
+        uint256 sumPercentage;
+        uint256 remainingPercentageAmount;
+        for (uint256 j; j < percentages.length; ++j) {
+            sumPercentage += percentages[j];
+        }
+
+        expectedClaimsFunds = (investment * 250_000) / PPM;
+
+        uint256 sumPercentageAmount = (investment * sumPercentage) / PPM;
+
+        if (sumPercentage < 250_000) {
+            remainingPercentageAmount = expectedClaimsFunds - sumPercentageAmount;
+        }
+        expectedClaimsFunds -= remainingPercentageAmount;
+        expectedPlatformfunds = remainingPercentageAmount;
+
+        expectedProjectFunds = (investment * 630000) / PPM;
+        expectedPlatformfunds += (investment * 100000) / PPM;
+        expectedBurnFunds += (investment * 20000) / PPM;
+
+        vm.startPrank(user);
+        preSale.purchaseTokenWithETH{ value: investment }(
+            code,
+            round,
+            deadline,
+            minAmount,
+            indexes,
+            leaders,
+            percentages,
+            v,
+            r,
+            s
+        );
+        console.log("function run successdully");
+
+    }
+
+    function testPurchaseTokenWithGems() public {
+        IERC20[] memory tokenss = new IERC20[](1);
+        tokenss[0] = GEMS;
+
+        bool[] memory accessess = new bool[](1);
+        accessess[0] = true;
+
+        uint256[] memory cPrices = new uint256[](1); //current price
+        cPrices[0] = 0;
+        vm.warp(block.timestamp + 1 hours);
+
+        vm.startPrank(owner);
+        preSale.createNewRound(block.timestamp, block.timestamp + 10 minutes, roundPrice, true, false); // started the Gems Round
+
+        preSale.updateAllowedTokens(3, tokenss, accessess, cPrices);
+
+        uint256 deadline = block.timestamp + 2 minutes;
+
+        vm.startPrank(signer);
+        (uint8 v, bytes32 r, bytes32 s) = _signWithToken(GEMS);
+        vm.stopPrank();
+
+        _lockupStake();
+        _subscribe();
+        uint256[] memory indexes = new uint256[](1);
+        indexes[0] = 0;
+
+        uint256 currentRoundIs = preSale.getRoundCount();
+        console.log("current round is : ", currentRoundIs);
+
+        vm.startPrank(user);
+        GEMS.forceApprove(address(preSale), GEMS.balanceOf(user));
+
+        preSale.purchaseTokenWithToken(
+            GEMS,
+            8, //normalization factor
+            64330000, //price with 10 decimals
+            500000000000000000000, //purchase amount
+            minAmount,
+            indexes,
+            leaders,
+            percentages,
+            code,
+            3,
+            deadline,
+            v,
+            r,
+            s
+        );
+        vm.stopPrank();
+
+     }
+
+    function testPurchaseTokenWithUSDT() public {
+        // uint256 expectedProjectFunds;
+        // uint256 expectedPlatformfunds;
+        // uint256 expectedBurnFunds;
+        // uint256 expectedClaimsFunds;
+
+        uint256 deadline = block.timestamp + 2 minutes;
+
+        // uint256 investment = 0.105 ether;
+
+        vm.startPrank(signer);
+        (uint8 v, bytes32 r, bytes32 s) = _signWithToken2();
+        vm.stopPrank();
+
+        uint256[] memory indexes = new uint256[](1);
+        indexes[0] = 0;
+
+        vm.startPrank(user);
+        USDT.forceApprove(address(preSale), USDT.balanceOf(user));
+        preSale.purchaseTokenWithToken(
+            USDT,
+            0,
+            0,
+            510000000000, // with 5 decimals = 510,000
+            minAmount,
+            indexes,
+            leaders,
+            percentages,
+            code,
+            round,
+            deadline,
+            v,
+            r,
+            s
+        );
+        vm.stopPrank();
+
+        uint256 amountPurchased = preSale.claims(user, 2);
+        console2.log("amount purchased :::::::: ", amountPurchased);
+    }
+
+    function testPurchaseTokenWithUSDTgreaterThan5kandlessThan50k() public {
+        uint256 deadline = block.timestamp + 2 minutes;
+
+        // uint256 investment = 0.105 ether;
+
+        vm.startPrank(signer);
+        (uint8 v, bytes32 r, bytes32 s) = _signWithToken2();
+        vm.stopPrank();
+
+        uint256[] memory indexes = new uint256[](1);
+        indexes[0] = 0;
+
+        vm.startPrank(user);
+        USDT.forceApprove(address(preSale), USDT.balanceOf(user));
+        vm.expectRevert(abi.encodeWithSignature("InvalidPurchase()"));
+        preSale.purchaseTokenWithToken(
+            USDT,
+            0,
+            0,
+            6000000000, // with 5 decimals = 510,000
+            minAmount,
+            indexes,
+            leaders,
+            percentages,
+            code,
+            round,
+            deadline,
+            v,
+            r,
+            s
+        );
+        vm.stopPrank();
+
+        uint256 amountPurchased = preSale.claims(user, 2);
+        console2.log("amount purchased :::::::: ", amountPurchased);
+    }
 
     // function test_RevertWhen_BuyDisabled() public {
     //     uint256[] memory indexes = new uint256[](1);
@@ -772,12 +955,24 @@ contract PreSaleTest is Test {
         return (v, r, s);
     }
 
-    function _signWithToken() internal view returns (uint8, bytes32, bytes32) {
+    function _signWithToken2() internal view returns (uint8, bytes32, bytes32) {
         uint256 referenceTokenPrice = 0;
-        uint256 normalizationFactor = 0;
+        uint256 normalizationFactor2 = 0;
         uint256 deadline = block.timestamp + 2 minutes;
         bytes32 mhash = keccak256(
-            abi.encodePacked(user, code, referenceTokenPrice, deadline, USDT, normalizationFactor)
+            abi.encodePacked(user, code, referenceTokenPrice, deadline, USDT, normalizationFactor2)
+        );
+        bytes32 msgHash = mhash.toEthSignedMessageHash();
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, msgHash);
+        return (v, r, s);
+    }
+
+    function _signWithToken(IERC20 _token) internal view returns (uint8, bytes32, bytes32) {
+        uint256 referenceTokenPrice = 64330000;
+        uint256 normalizationFactor = 8;
+        uint256 deadline = block.timestamp + 2 minutes;
+        bytes32 mhash = keccak256(
+            abi.encodePacked(user, code, referenceTokenPrice, deadline, _token, normalizationFactor)
         );
         bytes32 msgHash = mhash.toEthSignedMessageHash();
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, msgHash);

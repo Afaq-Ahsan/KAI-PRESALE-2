@@ -52,15 +52,6 @@ type PlatformWalletUpdated @entity(immutable: true) {
   transactionHash: Bytes!
 }
 
-type PricingUpdated @entity(immutable: true) {
-  id: Bytes!
-  oldPrice: BigInt! # uint256
-  newPrice: BigInt! # uint256
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: Bytes!
-}
-
 type ProjectWalletUpdated @entity(immutable: true) {
   id: Bytes!
   oldProjectWallet: Bytes! # address
@@ -89,26 +80,11 @@ type PurchasedWithETH @entity(immutable: true) {
   code: String! # string
   amountPurchasedETH: BigInt! # uint256
   round: BigInt! # uint32
+  roundType: String!
   leaders: [Bytes!]! # address[]
   percentages: [BigInt!]! # uint256[]
   roundPrice: BigInt! # uint256
   tokenPurchased: BigInt! # uint256
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: Bytes!
-}
-
-type PurchasedWithETHForNFT @entity(immutable: true) {
-  id: Bytes!
-  by: Bytes! # address
-  code: String! # string
-  amountInETH: BigInt! # uint256
-  ethPrice: BigInt! # uint256
-  round: BigInt! # uint32
-  leaders: [Bytes!]! # address[]
-  percentages: [BigInt!]! # uint256[]
-  roundPrice: BigInt! # uint256
-  nftAmounts: [BigInt!]! # uint256[]
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: Bytes!
@@ -123,25 +99,9 @@ type PurchasedWithToken @entity(immutable: true) {
   amountPurchased: BigInt! # uint256
   tokenPurchased: BigInt! # uint256
   round: BigInt! # uint32
+  roundType: String!
   leaders: [Bytes!]! # address[]
   percentages: [BigInt!]! # uint256[]
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: Bytes!
-}
-
-type PurchasedWithTokenForNFT @entity(immutable: true) {
-  id: Bytes!
-  token: Bytes! # address
-  tokenPrice: BigInt! # uint256
-  by: Bytes! # address
-  code: String! # string
-  amountPurchased: BigInt! # uint256
-  round: BigInt! # uint32
-  leaders: [Bytes!]! # address[]
-  percentages: [BigInt!]! # uint256[]
-  roundPrice: BigInt! # uint256
-  nftAmounts: [BigInt!]! # uint256[]
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: Bytes!
@@ -156,6 +116,7 @@ type Purchase @entity(immutable: false) {
   type: String! # string
   amountPurchased: BigInt! # uint256
   round: BigInt! # uint32
+  roundType: String!
   roundPrice: BigInt! # uint256
   tokenPrice: BigInt! # uint256
   tokenPurchased: BigInt! # uint256
@@ -173,6 +134,8 @@ type RoundCreated @entity(immutable: true) {
   roundData_startTime: BigInt! # uint256
   roundData_endTime: BigInt! # uint256
   roundData_price: BigInt! # uint256
+  isGemsRound: Boolean!
+  isSpecialRound: Boolean!
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: Bytes!
@@ -184,6 +147,8 @@ type RoundUpdated @entity(immutable: true) {
   roundData_startTime: BigInt! # uint256
   roundData_endTime: BigInt! # uint256
   roundData_price: BigInt! # uint256
+  isGemsRound: Boolean!
+  isSpecialRound: Boolean!
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: Bytes!
@@ -203,7 +168,6 @@ type TokenDataAdded @entity(immutable: true) {
   token: Bytes! # address
   data_priceFeed: Bytes! # address
   data_normalizationFactorForToken: Int! # uint8
-  data_normalizationFactorForNFT: Int! # uint8
   data_tolerance: BigInt! # uint256
   blockNumber: BigInt!
   blockTimestamp: BigInt!

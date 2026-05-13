@@ -8,9 +8,9 @@ dataSources:
     name: PreSale
     network: sepolia
     source:
-      address: "0xF24970354d7229Ca736E60d8d9F5E6F7FB5B36ef"
+      address: "0x407D2ED6F6Fb00710B24744D141766151D59C6Ba"
       abi: PreSale
-      startBlock: 7533565
+      startBlock: 10832909
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -22,13 +22,10 @@ dataSources:
         - OwnershipTransferStarted
         - OwnershipTransferred
         - PlatformWalletUpdated
-        - PricingUpdated
         - ProjectWalletUpdated
         - PurchasedWithClaimAmount
         - PurchasedWithETH
-        - PurchasedWithETHForNFT
         - PurchasedWithToken
-        - PurchasedWithTokenForNFT
         - RoundCreated
         - RoundUpdated
         - SignerUpdated
@@ -50,8 +47,6 @@ dataSources:
           handler: handleOwnershipTransferred
         - event: PlatformWalletUpdated(address,address)
           handler: handlePlatformWalletUpdated
-        - event: PricingUpdated(uint256,uint256)
-          handler: handlePricingUpdated
         - event: ProjectWalletUpdated(address,address)
           handler: handleProjectWalletUpdated
         - event:
@@ -59,25 +54,18 @@ dataSources:
             uint256,uint256)
           handler: handlePurchasedWithClaimAmount
         - event: PurchasedWithETH(indexed address,string,uint256,indexed
-            uint32,address[],uint256[],indexed uint256,uint256)
+            uint32,string,address[],uint256[],indexed uint256,uint256)
           handler: handlePurchasedWithETH
-        - event:
-            PurchasedWithETHForNFT(indexed address,string,uint256,uint256,indexed
-            uint32,address[],uint256[],uint256,uint256[])
-          handler: handlePurchasedWithETHForNFT
         - event: PurchasedWithToken(indexed address,uint256,indexed
-            address,string,uint256,uint256,indexed uint32,address[],uint256[])
+            address,string,uint256,uint256,indexed uint32,string,address[],uint256[])
           handler: handlePurchasedWithToken
-        - event: PurchasedWithTokenForNFT(indexed address,uint256,indexed
-            address,string,uint256,indexed uint32,address[],uint256[],uint256,uint256[])
-          handler: handlePurchasedWithTokenForNFT
-        - event: RoundCreated(indexed uint32,(uint256,uint256,uint256))
+        - event: RoundCreated(indexed uint32,(uint256,uint256,uint256,bool,bool))
           handler: handleRoundCreated
-        - event: RoundUpdated(indexed uint32,(uint256,uint256,uint256))
+        - event: RoundUpdated(indexed uint32,(uint256,uint256,uint256,bool,bool))
           handler: handleRoundUpdated
         - event: SignerUpdated(address,address)
           handler: handleSignerUpdated
-        - event: TokenDataAdded(address,(address,uint8,uint8,uint256))
+        - event: TokenDataAdded(address,(address,uint8,uint256))
           handler: handleTokenDataAdded
         - event: TokensAccessUpdated(indexed uint32,indexed address,indexed bool,uint256)
           handler: handleTokensAccessUpdated
@@ -86,9 +74,9 @@ dataSources:
     name: Claims
     network: sepolia
     source:
-      address: "0xD90DA3274109B095C7d7BCa5612572336AbBd3DA"
+      address: "0xAd2911Fcdf65682682842C1Aa4C2a5F6Ce3B195C"
       abi: Claims
-      startBlock: 7533447
+      startBlock: 10832869
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7

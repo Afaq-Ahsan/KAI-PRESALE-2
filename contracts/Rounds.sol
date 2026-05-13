@@ -8,6 +8,7 @@ import { TokenRegistry } from "./TokenRegistry.sol";
 import { IRounds } from "./IRounds.sol";
 
 import { ZeroAddress, ArrayLengthMismatch, ZeroLengthArray } from "./Common.sol";
+// import "forge-std/console2.sol";
 
 /// @title Rounds contract
 /// @notice Implements the round creation and updating of presale
@@ -24,11 +25,13 @@ abstract contract Rounds is IRounds, TokenRegistry {
     /// @custom:endTime The end time of round
     /// @custom:price The price in usd per token
     /// @custom:isGemsRound A flag indicating if the round is for GEMS tokens
+    /// @custom:isSpecialRound A flag indicating if the round is a special round
     struct RoundData {
         uint256 startTime;
         uint256 endTime;
         uint256 price;
         bool isGemsRound;
+        bool isSpecialRound;
     }
 
     /// @dev The round index of last round created
@@ -73,6 +76,9 @@ abstract contract Rounds is IRounds, TokenRegistry {
     /// @notice Thrown when new price is invalid
     error PriceInvalid();
 
+    /// @notice Thrown when both gems round and special round are active
+    error OnlyOneTypeOfRoundCanActive();
+
     /// @notice Thrown when startTime is incorrect when updating round
     error IncorrectStartTime();
 
@@ -97,7 +103,14 @@ abstract contract Rounds is IRounds, TokenRegistry {
     /// @param endTime The endTime of the round
     /// @param price The presale token price in 18 decimals, because our calculations returns a value in 36 decimals and to get returning value in 18 decimals we divide by round price
     /// @param isGemsRound A flag indicating if the round is for GEMS tokens
-    function createNewRound(uint256 startTime, uint256 endTime, uint256 price, bool isGemsRound) external onlyOwner {
+    /// @param isSpecialRound A flag indicating if the round is a special round
+    function createNewRound(
+        uint256 startTime,
+        uint256 endTime,
+        uint256 price,
+        bool isGemsRound,
+        bool isSpecialRound
+    ) external onlyOwner {
         RoundData memory prevRoundData = rounds[_roundIndex];
         uint32 newRound = ++_roundIndex;
 
@@ -109,8 +122,18 @@ abstract contract Rounds is IRounds, TokenRegistry {
             revert InvalidStartTime();
         }
 
+        if (isGemsRound && isSpecialRound) {
+            revert OnlyOneTypeOfRoundCanActive();
+        }
+
         _verifyRound(startTime, endTime, price);
-        prevRoundData = RoundData({ startTime: startTime, endTime: endTime, price: price, isGemsRound: isGemsRound });
+        prevRoundData = RoundData({
+            startTime: startTime,
+            endTime: endTime,
+            price: price,
+            isGemsRound: isGemsRound,
+            isSpecialRound: isSpecialRound
+        });
         rounds[newRound] = prevRoundData;
 
         emit RoundCreated({ newRound: newRound, roundData: prevRoundData });
@@ -187,7 +210,13 @@ abstract contract Rounds is IRounds, TokenRegistry {
         }
 
         _verifyRound(startTime, endTime, price);
-        rounds[round] = RoundData({ startTime: startTime, endTime: endTime, price: price, isGemsRound: rounds[round].isGemsRound });
+        rounds[round] = RoundData({
+            startTime: startTime,
+            endTime: endTime,
+            price: price,
+            isGemsRound: rounds[round].isGemsRound,
+            isSpecialRound: rounds[round].isSpecialRound
+        });
 
         emit RoundUpdated({ round: round, roundData: rounds[round] });
     }
@@ -196,6 +225,20 @@ abstract contract Rounds is IRounds, TokenRegistry {
     /// @return The Round count
     function getRoundCount() external view returns (uint32) {
         return _roundIndex;
+    }
+
+    /// @notice Returns the current ongoing round
+    /// @return The current ongoing round, returns 0 if no ongoing round
+    function getCurrentOngoingRound() external view returns (uint32) {
+        for (uint32 i = _startRound; i <= _roundIndex; i++) {
+            RoundData storage round = rounds[i];
+
+            if (block.timestamp >= round.startTime && block.timestamp < round.endTime) {
+                return i;
+            }
+        }
+
+        return 0;
     }
 
     /// @dev Validates array length and values

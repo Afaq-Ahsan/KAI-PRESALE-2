@@ -67,8 +67,8 @@ contract PreSale is Rounds, ReentrancyGuardTransient {
     /// @dev To achieve return value of required decimals
     uint256 private constant NORMALIZATION = 1e20;
 
-    /// @dev The constant value helps in calculating discount
-    uint256 public constant DISCOUNT_PPM = 200_000;
+    /// @notice The constant value helps in calculating discount
+    uint256 public DISCOUNT_PPM = 200_000; // need to create setter function
 
     /// @notice The maximum amount of limit in usd that can be purchased in gems round
     uint256 public gemsRoundLimit = 2000e6;
@@ -130,6 +130,7 @@ contract PreSale is Rounds, ReentrancyGuardTransient {
         string code,
         uint256 amountPurchasedETH,
         uint32 indexed round,
+        string roundType,
         address[] leaders,
         uint256[] percentages,
         uint256 indexed roundPrice,
@@ -145,6 +146,7 @@ contract PreSale is Rounds, ReentrancyGuardTransient {
         uint256 amountPurchased,
         uint256 tokenPurchased,
         uint32 indexed round,
+        string roundType,
         address[] leaders,
         uint256[] percentages
     );
@@ -185,6 +187,9 @@ contract PreSale is Rounds, ReentrancyGuardTransient {
 
     /// @dev Emitted when upper limit is updated
     event UpperLimitUpdated(uint256 oldLimit, uint256 newLimit);
+
+    /// @dev Emitted when discount for upper limit is updated
+    event DiscountUpdatedForUpperLimit(uint256 oldDiscount, uint256 newDiscount);
 
     /// @notice Thrown when address is blacklisted
     error Blacklisted();
@@ -230,6 +235,9 @@ contract PreSale is Rounds, ReentrancyGuardTransient {
 
     /// @notice Thrown when array is not sorted
     error ArrayNotSorted();
+
+    /// @notice Thrown when there is a Gems round and user tries to purchase with other Tokens
+    error PurchaseOnlyAllowedWithGems();
 
     /// @dev Restricts when updating wallet/contract address with zero address
     modifier checkAddressZero(address which) {
@@ -364,31 +372,48 @@ contract PreSale is Rounds, ReentrancyGuardTransient {
         blacklistAddress[which] = access;
     }
 
+    /// @notice Updates the gems round limit
+    /// @param newLimit The new gems round limit in USD
     function setGemsRoundLimit(uint256 newLimit) external onlyOwner {
         if (gemsRoundLimit == newLimit) {
             revert IdenticalValue();
         }
 
-        gemsRoundLimit = newLimit;
         emit GensRoundLimitUpdated({ oldLimit: gemsRoundLimit, newLimit: newLimit });
+        gemsRoundLimit = newLimit;
     }
 
+    /// @notice Updates the lower limit for purchase
+    /// @param newLimit The new lower limit in usd
     function setLowerLimit(uint256 newLimit) external onlyOwner {
         if (lowerLimit == newLimit) {
             revert IdenticalValue();
         }
 
-        lowerLimit = newLimit;
         emit LowerLimitUpdated({ oldLimit: lowerLimit, newLimit: newLimit });
+        lowerLimit = newLimit;
     }
 
+    /// @notice Updates the upper limit for purchases
+    /// @param newLimit The new upper limit in usd
     function setUpperLimit(uint256 newLimit) external onlyOwner {
         if (upperLimit == newLimit) {
             revert IdenticalValue();
         }
 
-        upperLimit = newLimit;
         emit UpperLimitUpdated({ oldLimit: upperLimit, newLimit: newLimit });
+        upperLimit = newLimit;
+    }
+
+    /// @notice Updates the discount percentage for purchases
+    /// @param newDiscount The new discount percentage in PPM (parts per million)
+    function setDiscountForUpperLimit(uint256 newDiscount) external onlyOwner {
+        if (DISCOUNT_PPM == newDiscount) {
+            revert IdenticalValue();
+        }
+
+        emit DiscountUpdatedForUpperLimit({ oldDiscount: DISCOUNT_PPM, newDiscount: newDiscount });
+        DISCOUNT_PPM = newDiscount;
     }
 
     /// @notice Purchases presale token with ETH
@@ -413,7 +438,10 @@ contract PreSale is Rounds, ReentrancyGuardTransient {
         uint8 v,
         bytes32 r,
         bytes32 s
-     ) external payable nonReentrant canBuy {
+    ) external payable nonReentrant canBuy {
+        if (rounds[round].isGemsRound) {
+            revert PurchaseOnlyAllowedWithGems();
+        }
         // The input must have been signed by the presale signer
         _validatePurchaseWithETH(msg.value, round, deadline, code, v, r, s);
         uint256 roundPrice = _getRoundPriceForToken(msg.sender, indexes, round, ETH);
@@ -426,8 +454,6 @@ contract PreSale is Rounds, ReentrancyGuardTransient {
         uint256 ethInUsdt = (msg.value * tokenInfo.latestPrice) / NORMALIZATION;
 
         roundPrice = _checkBuyingLimitations(msg.sender, ethInUsdt, roundPrice);
-
-        totalRaised += ethInUsdt;
 
         TransferInfo memory transferInfo = _calculateTransferAmounts(msg.value, leaders, percentages);
         uint256 toReturn = _calculateAndUpdateTokenAmount(
@@ -444,12 +470,16 @@ contract PreSale is Rounds, ReentrancyGuardTransient {
         _transferFundsETH(transferInfo);
         claims[msg.sender][round] += toReturn;
         _updateCommissions(leaders, percentages, msg.value, round, ETH);
+        totalRaised += ethInUsdt;
+
+        string memory roundType = _getRoundType(round);
 
         emit PurchasedWithETH({
             by: msg.sender,
             code: code,
             amountPurchasedETH: msg.value,
             round: round,
+            roundType: roundType,
             leaders: leaders,
             percentages: percentages,
             roundPrice: roundPrice,
@@ -515,7 +545,7 @@ contract PreSale is Rounds, ReentrancyGuardTransient {
         uint256 ethInUsdt = amount / NORMALIZATION_FACTOR;
 
         if (rounds[round].isGemsRound) {
-
+          
             if (gemsRoundBuying[msg.sender] + ethInUsdt > gemsRoundLimit) {
                 // gems round sale is only for up to 2000 USDT per user
                 revert InvalidPurchase();
@@ -536,6 +566,8 @@ contract PreSale is Rounds, ReentrancyGuardTransient {
         _transferFundsToken(token, transferInfo);
         claims[msg.sender][round] += toReturn;
         _updateCommissions(leaders, percentages, purchaseAmount, round, token);
+        totalRaised += ethInUsdt;
+        string memory roundType = _getRoundType(round);
 
         emit PurchasedWithToken({
             token: token,
@@ -545,6 +577,7 @@ contract PreSale is Rounds, ReentrancyGuardTransient {
             amountPurchased: purchaseAmount,
             tokenPurchased: toReturn,
             round: round,
+            roundType: roundType,
             leaders: leaders,
             percentages: percentages
         });
@@ -732,6 +765,21 @@ contract PreSale is Rounds, ReentrancyGuardTransient {
         _verifyCode(code, deadline, v, r, s);
     }
 
+    /// @dev Returns the type of a round based on its data
+    function _getRoundType(uint32 round) internal view returns (string memory) {
+        RoundData memory data = rounds[round];
+
+        if (data.isGemsRound) {
+            return "GEMS";
+        }
+
+        if (data.isSpecialRound) {
+            return "SPECIAL";
+        }
+
+        return "NORMAL";
+    }
+
     /// @dev Validates round, deadline and signature
     function _validatePurchaseWithToken(
         IERC20 token,
@@ -780,7 +828,7 @@ contract PreSale is Rounds, ReentrancyGuardTransient {
         uint256 endTime = v1 > v2 ? v1 : v2;
 
         if (lockedAmount >= lockup.minStakeAmount() || block.timestamp < endTime) {
-          
+           
             if (round == 1) {
                 roundPrice -= ((roundPrice * FIRST_ROUND_PPM) / PPM);
             } else {
@@ -813,7 +861,7 @@ contract PreSale is Rounds, ReentrancyGuardTransient {
     ) private view returns (uint256, uint8) {
         TokenInfo memory tokenInfo = getLatestPrice(token);
         if (tokenInfo.latestPrice != 0) {
-           
+          
             if (referenceTokenPrice != 0 || referenceNormalizationFactor != 0) {
                 revert CodeSyncIssue();
             }

@@ -7,13 +7,10 @@ import {
   OwnershipTransferStarted as OwnershipTransferStartedEvent,
   OwnershipTransferred as OwnershipTransferredEvent,
   PlatformWalletUpdated as PlatformWalletUpdatedEvent,
-  PricingUpdated as PricingUpdatedEvent,
   ProjectWalletUpdated as ProjectWalletUpdatedEvent,
   PurchasedWithClaimAmount as PurchasedWithClaimAmountEvent,
   PurchasedWithETH as PurchasedWithETHEvent,
-  PurchasedWithETHForNFT as PurchasedWithETHForNFTEvent,
   PurchasedWithToken as PurchasedWithTokenEvent,
-  PurchasedWithTokenForNFT as PurchasedWithTokenForNFTEvent,
   RoundCreated as RoundCreatedEvent,
   RoundUpdated as RoundUpdatedEvent,
   SignerUpdated as SignerUpdatedEvent,
@@ -27,13 +24,10 @@ import {
   OwnershipTransferStarted,
   OwnershipTransferred,
   PlatformWalletUpdated,
-  PricingUpdated,
   ProjectWalletUpdated,
   PurchasedWithClaimAmount,
   PurchasedWithETH,
-  PurchasedWithETHForNFT,
   PurchasedWithToken,
-  PurchasedWithTokenForNFT,
   RoundCreated,
   RoundUpdated,
   SignerUpdated,
@@ -152,20 +146,6 @@ export function handlePlatformWalletUpdated(
   entity.save()
 }
 
-export function handlePricingUpdated(event: PricingUpdatedEvent): void {
-  let entity = new PricingUpdated(
-    event.transaction.hash.concatI32(event.logIndex.toI32())
-  )
-  entity.oldPrice = event.params.oldPrice
-  entity.newPrice = event.params.newPrice
-
-  entity.blockNumber = event.block.number
-  entity.blockTimestamp = event.block.timestamp
-  entity.transactionHash = event.transaction.hash
-
-  entity.save()
-}
-
 export function handleProjectWalletUpdated(
   event: ProjectWalletUpdatedEvent
 ): void {
@@ -247,6 +227,7 @@ export function handlePurchasedWithETH(event: PurchasedWithETHEvent): void {
   entity.code = event.params.code
   entity.amountPurchasedETH = event.params.amountPurchasedETH
   entity.round = event.params.round
+  entity.roundType = event.params.roundType
   entity.leaders = changetype<Bytes[]>(event.params.leaders)
   entity.percentages = event.params.percentages
   entity.roundPrice = event.params.roundPrice
@@ -268,6 +249,7 @@ export function handlePurchasedWithETH(event: PurchasedWithETHEvent): void {
   _purchased.type = "GEMS"
   _purchased.amountPurchased = event.params.amountPurchasedETH
   _purchased.round = event.params.round
+  _purchased.roundType = event.params.roundType
   _purchased.blockTimestamp = event.block.timestamp
   _purchased.tokenPurchased = event.params.tokenPurchased
   _purchased.nftAmounts = []
@@ -280,50 +262,6 @@ export function handlePurchasedWithETH(event: PurchasedWithETHEvent): void {
   _purchased.save()
 }
 
-export function handlePurchasedWithETHForNFT(
-  event: PurchasedWithETHForNFTEvent
-): void {
-  let entity = new PurchasedWithETHForNFT(
-    event.transaction.hash.concatI32(event.logIndex.toI32())
-  )
-  entity.by = event.params.by
-  entity.code = event.params.code
-  entity.amountInETH = event.params.amountInETH
-  entity.ethPrice = event.params.ethPrice
-  entity.round = event.params.round
-  entity.leaders = changetype<Bytes[]>(event.params.leaders)
-  entity.percentages = event.params.percentages
-  entity.roundPrice = event.params.roundPrice
-  entity.nftAmounts = event.params.nftAmounts
-
-  entity.blockNumber = event.block.number
-  entity.blockTimestamp = event.block.timestamp
-  entity.transactionHash = event.transaction.hash
-
-  entity.save()
-
-
-  let _id = event.transaction.hash.concatI32(event.logIndex.toI32())
-  let _purchased = new Purchase(_id);
-
-  _purchased.by = event.params.by
-  _purchased.code = event.params.code
-  _purchased.tokenSelected = "ETH"
-  _purchased.type = "NFT"
-  _purchased.leaders = entity.leaders
-  _purchased.percentages = entity.percentages
-  _purchased.amountPurchased = event.params.amountInETH
-  _purchased.round = event.params.round
-  _purchased.blockTimestamp = event.block.timestamp
-  _purchased.tokenPurchased = BigInt.fromI32(0)
-  _purchased.nftAmounts = event.params.nftAmounts
-  _purchased.token = new Bytes(0)
-  _purchased.roundPrice = event.params.roundPrice
-  _purchased.tokenPrice = event.params.ethPrice
-  _purchased.transactionHash = event.transaction.hash
-  _purchased.dollarAmount = BigInt.fromI32(0)
-  _purchased.save()
-}
 
 export function handlePurchasedWithToken(event: PurchasedWithTokenEvent): void {
   let entity = new PurchasedWithToken(
@@ -336,6 +274,7 @@ export function handlePurchasedWithToken(event: PurchasedWithTokenEvent): void {
   entity.amountPurchased = event.params.amountPurchased
   entity.tokenPurchased = event.params.tokenPurchased
   entity.round = event.params.round
+  entity.roundType = event.params.roundType
   entity.leaders = changetype<Bytes[]>(event.params.leaders)
   entity.percentages = event.params.percentages
 
@@ -356,6 +295,7 @@ export function handlePurchasedWithToken(event: PurchasedWithTokenEvent): void {
   _purchased.type = "GEMS"
   _purchased.amountPurchased = event.params.amountPurchased
   _purchased.round = event.params.round
+  _purchased.roundType = event.params.roundType
   _purchased.blockTimestamp = event.block.timestamp
   _purchased.tokenPurchased = event.params.tokenPurchased
   _purchased.nftAmounts = []
@@ -381,53 +321,6 @@ export function handlePurchasedWithToken(event: PurchasedWithTokenEvent): void {
   _purchased.save()
 }
 
-export function handlePurchasedWithTokenForNFT(
-  event: PurchasedWithTokenForNFTEvent
-): void {
-  let entity = new PurchasedWithTokenForNFT(
-    event.transaction.hash.concatI32(event.logIndex.toI32())
-  )
-  entity.token = event.params.token
-  entity.tokenPrice = event.params.tokenPrice
-  entity.by = event.params.by
-  entity.code = event.params.code
-  entity.amountPurchased = event.params.amountPurchased
-  entity.round = event.params.round
-  entity.leaders = changetype<Bytes[]>(event.params.leaders)
-  entity.percentages = event.params.percentages
-  entity.roundPrice = event.params.roundPrice
-  entity.nftAmounts = event.params.nftAmounts
-
-  entity.blockNumber = event.block.number
-  entity.blockTimestamp = event.block.timestamp
-  entity.transactionHash = event.transaction.hash
-
-  entity.save()
-
-
-  let _id = event.transaction.hash.concatI32(event.logIndex.toI32())
-  let _purchased = new Purchase(_id);
-
-  _purchased.by = event.params.by
-  _purchased.code = event.params.code
-  _purchased.token = event.params.token
-  _purchased.tokenSelected = "TOKEN"
-  _purchased.type = "NFT"
-  _purchased.leaders = entity.leaders
-  _purchased.percentages = entity.percentages
-  _purchased.amountPurchased = event.params.amountPurchased
-  _purchased.round = event.params.round
-  _purchased.blockTimestamp = event.block.timestamp
-  _purchased.tokenPurchased = BigInt.fromI32(0)
-  _purchased.nftAmounts = event.params.nftAmounts
-  _purchased.roundPrice = event.params.roundPrice
-  _purchased.tokenPrice = event.params.tokenPrice
-  _purchased.dollarAmount = BigInt.fromI32(0)
-  _purchased.transactionHash = event.transaction.hash
-
-  _purchased.save()
-}
-
 export function handleRoundCreated(event: RoundCreatedEvent): void {
   let entity = new RoundCreated(
     event.transaction.hash.concatI32(event.logIndex.toI32())
@@ -436,6 +329,8 @@ export function handleRoundCreated(event: RoundCreatedEvent): void {
   entity.roundData_startTime = event.params.roundData.startTime
   entity.roundData_endTime = event.params.roundData.endTime
   entity.roundData_price = event.params.roundData.price
+  entity.isGemsRound = event.params.roundData.isGemsRound
+  entity.isSpecialRound = event.params.roundData.isSpecialRound
 
   entity.blockNumber = event.block.number
   entity.blockTimestamp = event.block.timestamp
@@ -452,7 +347,8 @@ export function handleRoundUpdated(event: RoundUpdatedEvent): void {
   entity.roundData_startTime = event.params.roundData.startTime
   entity.roundData_endTime = event.params.roundData.endTime
   entity.roundData_price = event.params.roundData.price
-
+  entity.isGemsRound = event.params.roundData.isGemsRound
+  entity.isSpecialRound = event.params.roundData.isSpecialRound
   entity.blockNumber = event.block.number
   entity.blockTimestamp = event.block.timestamp
   entity.transactionHash = event.transaction.hash
@@ -482,8 +378,6 @@ export function handleTokenDataAdded(event: TokenDataAddedEvent): void {
   entity.data_priceFeed = event.params.data.priceFeed
   entity.data_normalizationFactorForToken =
     event.params.data.normalizationFactorForToken
-  entity.data_normalizationFactorForNFT =
-    event.params.data.normalizationFactorForNFT
   entity.data_tolerance = event.params.data.tolerance
 
   entity.blockNumber = event.block.number
