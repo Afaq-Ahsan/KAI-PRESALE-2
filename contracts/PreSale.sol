@@ -216,7 +216,7 @@ contract PreSale is Rounds, ReentrancyGuardTransient {
     error OnlyClaims();
 
     /// @notice Thrown when purchase amount is less than required
-    error InvalidPurchase();
+    error MaxPurchaseLimit();
 
     /// @notice Thrown when both price feed and reference price are non zero
     error CodeSyncIssue();
@@ -310,7 +310,6 @@ contract PreSale is Rounds, ReentrancyGuardTransient {
     /// @param newSigner The address of the new signer wallet
     function changeSigner(address newSigner) external checkAddressZero(newSigner) onlyOwner {
         address oldSigner = signerWallet;
-
         if (oldSigner == newSigner) {
             revert IdenticalValue();
         }
@@ -323,7 +322,6 @@ contract PreSale is Rounds, ReentrancyGuardTransient {
     /// @param newPlatformWallet The address of the new platform wallet
     function updatePlatformWallet(address newPlatformWallet) external checkAddressZero(newPlatformWallet) onlyOwner {
         address oldPlatformWallet = platformWallet;
-
         if (oldPlatformWallet == newPlatformWallet) {
             revert IdenticalValue();
         }
@@ -548,7 +546,7 @@ contract PreSale is Rounds, ReentrancyGuardTransient {
           
             if (gemsRoundBuying[msg.sender] + ethInUsdt > gemsRoundLimit) {
                 // gems round sale is only for up to 2000 USDT per user
-                revert InvalidPurchase();
+                revert MaxPurchaseLimit();
             }
 
             gemsRoundBuying[msg.sender] += ethInUsdt;
@@ -738,7 +736,7 @@ contract PreSale is Rounds, ReentrancyGuardTransient {
         if (ethInUsdt < upperLimit) {
             // Small buyer logic
             if (lowerLimitInvestment[user] + ethInUsdt > lowerLimit) {
-                revert InvalidPurchase();
+                revert MaxPurchaseLimit();
             }
 
             lowerLimitInvestment[user] += ethInUsdt;
@@ -810,7 +808,7 @@ contract PreSale is Rounds, ReentrancyGuardTransient {
 
         for (uint256 i; i < indexLength; ++i) {
             if (indexLength != i + 1) {
-               
+              
                 if (indexes[i] >= indexes[i + 1]) {
                     revert ArrayNotSorted();
                 }
@@ -868,7 +866,7 @@ contract PreSale is Rounds, ReentrancyGuardTransient {
         }
         //  If price feed isn't available,we fallback to the reference price
         if (tokenInfo.latestPrice == 0) {
-          
+           
             if (referenceTokenPrice == 0 || referenceNormalizationFactor == 0) {
                 revert ZeroValue();
             }

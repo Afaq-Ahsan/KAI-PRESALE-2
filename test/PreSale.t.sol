@@ -125,7 +125,6 @@ contract PreSaleTest is Test {
         vm.startPrank(owner);
         preSale.createNewRound(block.timestamp, block.timestamp + 10 minutes, roundPrice, false, false); //creating new round
 
-
         IERC20[] memory tokens = new IERC20[](4);
         tokens[0] = IERC20(ETH);
         tokens[1] = USDT;
@@ -319,7 +318,7 @@ contract PreSaleTest is Test {
         expectedBurnFunds += (investment * 20000) / PPM;
 
         vm.startPrank(user);
-        vm.expectRevert(abi.encodeWithSignature("InvalidPurchase()"));
+        vm.expectRevert(abi.encodeWithSignature("MaxPurchaseLimit()"));
         preSale.purchaseTokenWithETH{ value: investment }(
             code,
             round,
@@ -395,7 +394,7 @@ contract PreSaleTest is Test {
 
         uint256 investment3 = 0.1 ether;
 
-        vm.expectRevert(abi.encodeWithSignature("InvalidPurchase()"));
+        vm.expectRevert(abi.encodeWithSignature("MaxPurchaseLimit()"));
         vm.startPrank(user);
         preSale.purchaseTokenWithETH{ value: investment3 }(
             code,
@@ -426,7 +425,7 @@ contract PreSaleTest is Test {
 
         vm.warp(block.timestamp + 1 hours);
         vm.startPrank(owner);
-        preSale.createNewRound(block.timestamp, block.timestamp + 10 minutes, roundPrice, true,false);
+        preSale.createNewRound(block.timestamp, block.timestamp + 10 minutes, roundPrice, true, false);
 
         vm.startPrank(signer);
         (v, r, s) = _signWithETH();
@@ -544,7 +543,6 @@ contract PreSaleTest is Test {
             s
         );
         console.log("function run successdully");
-
     }
 
     function testPurchaseTokenWithGems() public {
@@ -583,7 +581,7 @@ contract PreSaleTest is Test {
         preSale.purchaseTokenWithToken(
             GEMS,
             8, //normalization factor
-            64330000, //price with 10 decimals
+            64780000, //price with 10 decimals
             500000000000000000000, //purchase amount
             minAmount,
             indexes,
@@ -597,8 +595,7 @@ contract PreSaleTest is Test {
             s
         );
         vm.stopPrank();
-
-     }
+    }
 
     function testPurchaseTokenWithUSDT() public {
         // uint256 expectedProjectFunds;
@@ -655,7 +652,7 @@ contract PreSaleTest is Test {
 
         vm.startPrank(user);
         USDT.forceApprove(address(preSale), USDT.balanceOf(user));
-        vm.expectRevert(abi.encodeWithSignature("InvalidPurchase()"));
+        vm.expectRevert(abi.encodeWithSignature("MaxPurchaseLimit()"));
         preSale.purchaseTokenWithToken(
             USDT,
             0,
@@ -676,6 +673,183 @@ contract PreSaleTest is Test {
 
         uint256 amountPurchased = preSale.claims(user, 2);
         console2.log("amount purchased :::::::: ", amountPurchased);
+    }
+
+    function testPurchaseTokenWithusdtAndGemsInGemsRound() public {
+        IERC20[] memory tokenss = new IERC20[](2);
+        tokenss[0] = GEMS;
+        tokenss[1] = USDT;
+
+        bool[] memory accessess = new bool[](2);
+        accessess[0] = true;
+        accessess[1] = true;
+
+        uint256[] memory cPrices = new uint256[](2); //current price
+        cPrices[0] = 0;
+        cPrices[1] = 0;
+        vm.warp(block.timestamp + 1 hours);
+
+        uint256 deadline = block.timestamp + 2 minutes;
+
+        vm.startPrank(signer);
+        (uint8 v1, bytes32 r1, bytes32 s1) = _signWithToken2();
+        vm.stopPrank();
+        // vm.startPrank(signer);
+        // (uint8 v, bytes32 r, bytes32 s) = _signWithToken(GEMS);
+        // vm.stopPrank();
+
+        _lockupStake();
+        _subscribe();
+        uint256[] memory indexes = new uint256[](1);
+        indexes[0] = 0;
+
+        uint256 currentRoundIs = preSale.getRoundCount();
+        console.log("current round is : ", currentRoundIs);
+
+        vm.startPrank(owner);
+        preSale.createNewRound(block.timestamp, block.timestamp + 10 minutes, roundPrice, true, false); // started the Gems Round
+        preSale.updateAllowedTokens(3, tokenss, accessess, cPrices);
+        vm.startPrank(user);
+        USDT.forceApprove(address(preSale), USDT.balanceOf(user));
+
+        vm.expectRevert(abi.encodeWithSignature("MaxPurchaseLimit()"));
+        preSale.purchaseTokenWithToken(
+            USDT,
+            0, //normalization factor
+            0, //price with 10 decimals
+            500000000000000000000, //purchase amount
+            minAmount,
+            indexes,
+            leaders,
+            percentages,
+            code,
+            3,
+            deadline,
+            v1,
+            r1,
+            s1
+        );
+        vm.stopPrank();
+
+        vm.startPrank(signer);
+        (uint8 v, bytes32 r, bytes32 s) = _signWithToken(GEMS);
+        vm.stopPrank();
+
+        vm.startPrank(user);
+        GEMS.forceApprove(address(preSale), GEMS.balanceOf(user));
+
+        preSale.purchaseTokenWithToken(
+            GEMS,
+            8, //normalization factor
+            64780000, //price with 10 decimals
+            500000000000000000000, //purchase amount
+            minAmount,
+            indexes,
+            leaders,
+            percentages,
+            code,
+            3,
+            deadline,
+            v,
+            r,
+            s
+        );
+        vm.stopPrank();
+    }
+
+    function testupdateTheupperLimit() public {
+        uint256 upperlimitBefore = preSale.upperLimit();
+        console2.log("upperlimitBefore ::::: ", upperlimitBefore);
+
+        vm.startPrank(owner);
+        preSale.setUpperLimit(70000e6);
+        vm.stopPrank();
+
+        assertEq(preSale.upperLimit(), 70000e6);
+    }
+
+    function testupdateTheLowerLimit() public {
+        uint256 lowerlimitBefore = preSale.lowerLimit();
+        console2.log("lowerlimitBefore ::::: ", lowerlimitBefore);
+
+        vm.startPrank(owner);
+        preSale.setLowerLimit(9000e6);
+        vm.stopPrank();
+
+        assertEq(preSale.lowerLimit(), 9000e6);
+    }
+
+    function testupdateTheGemsRoundLimit() public {
+        uint256 gemsRoundLimitBefore = preSale.gemsRoundLimit();
+        console2.log("gemsRoundLimitBefore ::::: ", gemsRoundLimitBefore);
+
+        vm.startPrank(owner);
+        preSale.setGemsRoundLimit(3500e6);
+        vm.stopPrank();
+
+        assertEq(preSale.gemsRoundLimit(), 3500e6);
+    }
+
+    function testsetDiscountForUpperLimit() public {
+        uint256 upperLimitDiscount = preSale.DISCOUNT_PPM();
+        console2.log("upperLimitDiscount ::::: ", upperLimitDiscount);
+
+        vm.startPrank(owner);
+        preSale.setDiscountForUpperLimit(300000);
+        vm.stopPrank();
+
+        assertEq(preSale.DISCOUNT_PPM(), 300000);
+    }
+
+    function testPurchaseTokenWithGemsInGemsRoundUnderGemsLimit() public {
+        IERC20[] memory tokenss = new IERC20[](1);
+        tokenss[0] = GEMS;
+
+        bool[] memory accessess = new bool[](1);
+        accessess[0] = true;
+
+        uint256[] memory cPrices = new uint256[](1); //current price
+        cPrices[0] = 0;
+        vm.warp(block.timestamp + 1 hours);
+
+        uint256 deadline = block.timestamp + 2 minutes;
+
+        vm.startPrank(signer);
+        (uint8 v, bytes32 r, bytes32 s) = _signWithToken(GEMS);
+        vm.stopPrank();
+
+        _lockupStake();
+        _subscribe();
+        uint256[] memory indexes = new uint256[](1);
+        indexes[0] = 0;
+
+        uint256 currentRoundIs = preSale.getRoundCount();
+        console.log("current round is : ", currentRoundIs);
+
+        vm.startPrank(owner);
+        preSale.createNewRound(block.timestamp, block.timestamp + 10 minutes, roundPrice, true, false); // started the Gems Round
+        preSale.updateAllowedTokens(3, tokenss, accessess, cPrices);
+
+        vm.startPrank(user);
+        GEMS.forceApprove(address(preSale), GEMS.balanceOf(user));
+        vm.expectRevert(abi.encodeWithSignature("MaxPurchaseLimit()"));
+        preSale.purchaseTokenWithToken(
+            GEMS,
+            8, //normalization factor
+            64780000, //price with 10 decimals
+            500000000000000000000000, //purchase amount
+            minAmount,
+            indexes,
+            leaders,
+            percentages,
+            code,
+            3,
+            deadline,
+            v,
+            r,
+            s
+        );
+        vm.stopPrank();
     }
 
     // function test_RevertWhen_BuyDisabled() public {
@@ -703,249 +877,202 @@ contract PreSaleTest is Test {
     //     );
     // }
 
-    // function test_RevertWhen_UserBlacklisted_ETH() public {
-    //     uint256[] memory indexes = new uint256[](1);
-    //     indexes[0] = 0;
-    //     vm.startPrank(owner);
-    //     preSale.updateBlackListedUser(user, true);
-    //     vm.stopPrank();
+    function test_RevertWhen_UserBlacklisted_ETH() public {
+        uint256[] memory indexes = new uint256[](1);
+        indexes[0] = 0;
+        vm.startPrank(owner);
+        preSale.updateBlackListedUser(user, true);
+        vm.stopPrank();
 
-    //     (uint8 v, bytes32 r, bytes32 s) = _signWithETH();
+        (uint8 v, bytes32 r, bytes32 s) = _signWithETH();
 
-    //     vm.expectRevert(abi.encodeWithSignature("Blacklisted()"));
-    //     vm.prank(user);
-    //     preSale.purchaseTokenWithETH{ value: 1 ether }(
-    //         code,
-    //         round,
-    //         block.timestamp + 2 minutes,
-    //         1,
-    //         indexes,
-    //         leaders,
-    //         percentages,
-    //         v,
-    //         r,
-    //         s
-    //     );
-    // }
+        vm.expectRevert(abi.encodeWithSignature("Blacklisted()"));
+        vm.prank(user);
+        preSale.purchaseTokenWithETH{ value: 1 ether }(
+            code,
+            round,
+            block.timestamp + 2 minutes,
+            1,
+            indexes,
+            leaders,
+            percentages,
+            v,
+            r,
+            s
+        );
+    }
 
-    // function test_RevertWhen_DeadlineExpired_ETH() public {
-    //     uint256[] memory indexes = new uint256[](1);
-    //     indexes[0] = 0;
-    //     (uint8 v, bytes32 r, bytes32 s) = _signWithETH();
+    function test_RevertWhen_DeadlineExpired_ETH() public {
+        uint256[] memory indexes = new uint256[](1);
+        indexes[0] = 0;
+        (uint8 v, bytes32 r, bytes32 s) = _signWithETH();
 
-    //     // push time so the signed deadline is in the past
-    //     vm.warp(block.timestamp + 1 days);
+        // push time so the signed deadline is in the past
+        vm.warp(block.timestamp + 1 days);
 
-    //     vm.expectRevert(abi.encodeWithSignature("DeadlineExpired()"));
-    //     vm.prank(user);
-    //     preSale.purchaseTokenWithETH{ value: 1 ether }(
-    //         code,
-    //         round,
-    //         block.timestamp - 1,
-    //         1,
-    //         indexes,
-    //         leaders,
-    //         percentages,
-    //         v,
-    //         r,
-    //         s
-    //     );
-    // }
+        vm.expectRevert(abi.encodeWithSignature("DeadlineExpired()"));
+        vm.prank(user);
+        preSale.purchaseTokenWithETH{ value: 1 ether }(
+            code,
+            round,
+            block.timestamp - 1,
+            1,
+            indexes,
+            leaders,
+            percentages,
+            v,
+            r,
+            s
+        );
+    }
 
-    // function test_RevertWhen_TokenDisallowed() public {
-    //     // Disallow USDT for round
+    function test_RevertWhen_ArrayLengthMismatch() public {
+        uint256[] memory indexes = new uint256[](1);
+        indexes[0] = 0;
+        address[] memory ls = new address[](2);
+        ls[0] = leaders[0];
+        ls[1] = leaders[1];
+        uint256[] memory perc = new uint256[](1);
+        perc[0] = 25_000;
 
-    //     IERC20[] memory tokens = new IERC20[](3);
-    //     tokens[0] = IERC20(ETH);
-    //     tokens[1] = USDC;
-    //     tokens[2] = GEMS;
+        (uint8 v, bytes32 r, bytes32 s) = _signWithETH();
 
-    //     bool[] memory accesses = new bool[](3);
-    //     accesses[0] = true;
-    //     accesses[1] = true;
-    //     accesses[2] = true;
+        vm.expectRevert(abi.encodeWithSignature("ArrayLengthMismatch()"));
+        vm.prank(user);
+        preSale.purchaseTokenWithETH{ value: 1 ether }(
+            code,
+            round,
+            block.timestamp + 2 minutes,
+            1,
+            indexes,
+            ls,
+            perc,
+            v,
+            r,
+            s
+        );
+    }
 
-    //     uint256[] memory cPrice = new uint256[](3); //current price
-    //     cPrice[0] = 0;
-    //     cPrice[1] = 0;
-    //     cPrice[2] = 0;
-    //     uint256[] memory indexes = new uint256[](1);
-    //     indexes[0] = 0;
-    //     vm.startPrank(owner);
-    //     preSale.updateAllowedTokens(round, tokens, accesses, cPrice);
-    //     vm.stopPrank();
+    function test_RevertWhen_PercentageSumZero() public {
+        uint256[] memory indexes = new uint256[](1);
+        indexes[0] = 0;
+        address[] memory ls = new address[](2);
+        ls[0] = leaders[0];
+        ls[1] = leaders[1];
 
-    //     (uint8 v, bytes32 r, bytes32 s) = _signWithToken();
+        uint256[] memory perc = new uint256[](2);
+        perc[0] = 0;
+        perc[1] = 0;
 
-    //     vm.startPrank(user);
-    //     USDT.forceApprove(address(preSale), 1e6);
-    //     vm.expectRevert(abi.encodeWithSignature("TokenDisallowed()"));
-    //     preSale.purchaseTokenWithToken(
-    //         STAT,
-    //         0,
-    //         0,
-    //         1e6,
-    //         1,
-    //         indexes,
-    //         leaders,
-    //         percentages,
-    //         code,
-    //         round,
-    //         block.timestamp + 2 minutes,
-    //         v,
-    //         r,
-    //         s
-    //     );
-    //     vm.stopPrank();
-    // }
+        (uint8 v, bytes32 r, bytes32 s) = _signWithETH();
 
-    // function test_RevertWhen_ArrayLengthMismatch() public {
-    //     uint256[] memory indexes = new uint256[](1);
-    //     indexes[0] = 0;
-    //     address[] memory ls = new address[](2);
-    //     ls[0] = leaders[0];
-    //     ls[1] = leaders[1];
-    //     uint256[] memory perc = new uint256[](1);
-    //     perc[0] = 25_000;
+        vm.expectRevert(abi.encodeWithSignature("ZeroValue()"));
+        vm.prank(user);
+        preSale.purchaseTokenWithETH{ value: 1 ether }(
+            code,
+            round,
+            block.timestamp + 2 minutes,
+            1,
+            indexes,
+            ls,
+            perc,
+            v,
+            r,
+            s
+        );
+    }
 
-    //     (uint8 v, bytes32 r, bytes32 s) = _signWithETH();
+    function test_RevertWhen_PercentageSumExceedsCap() public {
+        uint256[] memory indexes = new uint256[](1);
+        indexes[0] = 0;
+        // Sum > 250_000 (CLAIMS_PERCENTAGE_PPM)
+        address[] memory ls = new address[](3);
+        ls[0] = leaders[0];
+        ls[1] = leaders[1];
+        ls[2] = leaders[2];
 
-    //     vm.expectRevert(abi.encodeWithSignature("ArrayLengthMismatch()"));
-    //     vm.prank(user);
-    //     preSale.purchaseTokenWithETH{ value: 1 ether }(
-    //         code,
-    //         round,
-    //         block.timestamp + 2 minutes,
-    //         1,
-    //         indexes,
-    //         ls,
-    //         perc,
-    //         v,
-    //         r,
-    //         s
-    //     );
-    // }
+        uint256[] memory perc = new uint256[](3);
+        perc[0] = 100_000;
+        perc[1] = 100_000;
+        perc[2] = 100_001; // total 300,001
 
-    // function test_RevertWhen_PercentageSumZero() public {
-    //     uint256[] memory indexes = new uint256[](1);
-    //     indexes[0] = 0;
-    //     address[] memory ls = new address[](2);
-    //     ls[0] = leaders[0];
-    //     ls[1] = leaders[1];
+        (uint8 v, bytes32 r, bytes32 s) = _signWithETH();
 
-    //     uint256[] memory perc = new uint256[](2);
-    //     perc[0] = 0;
-    //     perc[1] = 0;
+        vm.expectRevert(abi.encodeWithSignature("InvalidPercentage()"));
+        vm.prank(user);
+        preSale.purchaseTokenWithETH{ value: 1 ether }(
+            code,
+            round,
+            block.timestamp + 2 minutes,
+            1,
+            indexes,
+            ls,
+            perc,
+            v,
+            r,
+            s
+        );
+    }
 
-    //     (uint8 v, bytes32 r, bytes32 s) = _signWithETH();
+    function test_OwnerOnly_AdminUpdates() public {
+        // change signer
+        vm.expectRevert(abi.encodeWithSignature("OwnableUnauthorizedAccount(address)", user));
+        vm.prank(user);
+        preSale.changeSigner(address(0xBEEF));
 
-    //     vm.expectRevert(abi.encodeWithSignature("ZeroValue()"));
-    //     vm.prank(user);
-    //     preSale.purchaseTokenWithETH{ value: 1 ether }(
-    //         code,
-    //         round,
-    //         block.timestamp + 2 minutes,
-    //         1,
-    //         indexes,
-    //         ls,
-    //         perc,
-    //         v,
-    //         r,
-    //         s
-    //     );
-    // }
+        vm.prank(owner);
+        vm.expectEmit(true, true, true, true);
+        emit PreSale.SignerUpdated(signerAddress, address(0xBEEF));
+        preSale.changeSigner(address(0xBEEF));
 
-    // function test_RevertWhen_PercentageSumExceedsCap() public {
-    //     uint256[] memory indexes = new uint256[](1);
-    //     indexes[0] = 0;
-    //     // Sum > 250_000 (CLAIMS_PERCENTAGE_PPM)
-    //     address[] memory ls = new address[](3);
-    //     ls[0] = leaders[0];
-    //     ls[1] = leaders[1];
-    //     ls[2] = leaders[2];
+        // update platform wallet
+        vm.prank(owner);
+        vm.expectEmit(true, true, true, true);
+        emit PreSale.PlatformWalletUpdated(platformWallet, address(0xCAFE));
+        preSale.updatePlatformWallet(address(0xCAFE));
 
-    //     uint256[] memory perc = new uint256[](3);
-    //     perc[0] = 100_000;
-    //     perc[1] = 100_000;
-    //     perc[2] = 100_001; // total 300,001
+        // update project wallet
+        vm.prank(owner);
+        vm.expectEmit(true, true, true, true);
+        emit PreSale.ProjectWalletUpdated(projectWallet, address(0xFACE));
+        preSale.updateProjectWallet(address(0xFACE));
 
-    //     (uint8 v, bytes32 r, bytes32 s) = _signWithETH();
+        // update burn wallet
+        vm.prank(owner);
+        vm.expectEmit(true, true, true, true);
+        emit PreSale.BurnWalletUpdated(burnWallet, address(0xDEAD));
+        preSale.updateBurnWallet(address(0xDEAD));
 
-    //     vm.expectRevert(abi.encodeWithSignature("InvalidPercentage()"));
-    //     vm.prank(user);
-    //     preSale.purchaseTokenWithETH{ value: 1 ether }(
-    //         code,
-    //         round,
-    //         block.timestamp + 2 minutes,
-    //         1,
-    //         indexes,
-    //         ls,
-    //         perc,
-    //         v,
-    //         r,
-    //         s
-    //     );
-    // }
+        // buy toggle
+        vm.prank(owner);
+        vm.expectEmit(true, true, true, true);
+        emit PreSale.BuyEnableUpdated(true, false);
+        preSale.enableBuy(false);
+    }
 
-    // function test_OwnerOnly_AdminUpdates() public {
-    //     // change signer
-    //     vm.expectRevert(abi.encodeWithSignature("OwnableUnauthorizedAccount(address)", user));
-    //     vm.prank(user);
-    //     preSale.changeSigner(address(0xBEEF));
+    function test_RevertWhen_RoundNotEnabled() public {
+        // try to claim without enabling
+        vm.warp(block.timestamp + 2 hours);
 
-    //     vm.prank(owner);
-    //     vm.expectEmit(true, true, true, true);
-    //     emit PreSale.SignerUpdated(signerAddress, address(0xBEEF));
-    //     preSale.changeSigner(address(0xBEEF));
+        IERC20[] memory tokens = new IERC20[](1);
+        tokens[0] = USDT;
 
-    //     // update platform wallet
-    //     vm.prank(owner);
-    //     vm.expectEmit(true, true, true, true);
-    //     emit PreSale.PlatformWalletUpdated(platformWallet, address(0xCAFE));
-    //     preSale.updatePlatformWallet(address(0xCAFE));
+        vm.expectRevert(abi.encodeWithSignature("RoundNotEnabled()"));
+        vm.prank(leaders[0]);
+        claimsContractAddress.claim(round, tokens);
+    }
 
-    //     // update project wallet
-    //     vm.prank(owner);
-    //     vm.expectEmit(true, true, true, true);
-    //     emit PreSale.ProjectWalletUpdated(projectWallet, address(0xFACE));
-    //     preSale.updateProjectWallet(address(0xFACE));
+    function test_RevertWhen_RoundNotEnded() public {
+        vm.prank(owner);
+        claimsContractAddress.enableClaims(round, true);
 
-    //     // update burn wallet
-    //     vm.prank(owner);
-    //     vm.expectEmit(true, true, true, true);
-    //     emit PreSale.BurnWalletUpdated(burnWallet, address(0xDEAD));
-    //     preSale.updateBurnWallet(address(0xDEAD));
+        IERC20[] memory tokens = new IERC20[](1);
+        tokens[0] = USDT;
 
-    //     // buy toggle
-    //     vm.prank(owner);
-    //     vm.expectEmit(true, true, true, true);
-    //     emit PreSale.BuyEnableUpdated(true, false);
-    //     preSale.enableBuy(false);
-    // }
-
-    // function test_RevertWhen_RoundNotEnabled() public {
-    //     // try to claim without enabling
-    //     vm.warp(block.timestamp + 2 hours);
-
-    //     IERC20[] memory tokens = new IERC20[](1);
-    //     tokens[0] = USDT;
-
-    //     vm.expectRevert(abi.encodeWithSignature("RoundNotEnabled()"));
-    //     vm.prank(leaders[0]);
-    //     claimsContractAddress.claim(round, tokens);
-    // }
-
-    // function test_RevertWhen_RoundNotEnded() public {
-    //     vm.prank(owner);
-    //     claimsContractAddress.enableClaims(round, true);
-
-    //     IERC20[] memory tokens = new IERC20[](1);
-    //     tokens[0] = USDT;
-
-    //     vm.expectRevert(abi.encodeWithSignature("RoundNotEnded()"));
-    //     vm.prank(leaders[0]);
-    //     claimsContractAddress.claim(round, tokens);
-    // }
+        vm.expectRevert(abi.encodeWithSignature("RoundNotEnded()"));
+        vm.prank(leaders[0]);
+        claimsContractAddress.claim(round, tokens);
+    }
 
     function _signWithETH() internal view returns (uint8, bytes32, bytes32) {
         uint256 deadline = block.timestamp + 2 minutes;
@@ -968,7 +1095,7 @@ contract PreSaleTest is Test {
     }
 
     function _signWithToken(IERC20 _token) internal view returns (uint8, bytes32, bytes32) {
-        uint256 referenceTokenPrice = 64330000;
+        uint256 referenceTokenPrice = 64780000;
         uint256 normalizationFactor = 8;
         uint256 deadline = block.timestamp + 2 minutes;
         bytes32 mhash = keccak256(
