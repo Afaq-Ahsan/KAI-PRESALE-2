@@ -79,6 +79,9 @@ contract PreSale is Rounds, ReentrancyGuardTransient {
     /// @notice The maximum amount of higher limit in usd where tokens that can be purchased
     uint256 public upperLimit = 50000e6;
 
+    /// @notice The maximum amount of limit in usd that can be purchased in special round
+    uint256 public specialRoundLimit = 5000e6;
+
     /// @notice The token address totalRaised in USD
     uint256 public totalRaised;
 
@@ -123,6 +126,9 @@ contract PreSale is Rounds, ReentrancyGuardTransient {
 
     /// @notice Provides information about purchasing tokens using Gems in USD.
     mapping(address => uint256) public gemsRoundBuying;
+
+    /// @notice Provides information about purchasing in special round in USD.
+    mapping(address => uint256) public specialRoundBuying;
 
     /// @dev Emitted when token is purchased with ETH
     event PurchasedWithETH(
@@ -180,7 +186,7 @@ contract PreSale is Rounds, ReentrancyGuardTransient {
     event BuyEnableUpdated(bool oldAccess, bool newAccess);
 
     /// @dev Emitted when gems round limit is updated
-    event GensRoundLimitUpdated(uint256 oldLimit, uint256 newLimit);
+    event GemsRoundLimitUpdated(uint256 oldLimit, uint256 newLimit);
 
     /// @dev Emitted when lower limit is updated
     event LowerLimitUpdated(uint256 oldLimit, uint256 newLimit);
@@ -190,6 +196,9 @@ contract PreSale is Rounds, ReentrancyGuardTransient {
 
     /// @dev Emitted when discount for upper limit is updated
     event DiscountUpdatedForUpperLimit(uint256 oldDiscount, uint256 newDiscount);
+
+    /// @dev Emitted when special round limit is updated
+    event SpecialRoundLimitUpdated(uint256 oldLimit, uint256 newLimit);
 
     /// @notice Thrown when address is blacklisted
     error Blacklisted();
@@ -377,7 +386,7 @@ contract PreSale is Rounds, ReentrancyGuardTransient {
             revert IdenticalValue();
         }
 
-        emit GensRoundLimitUpdated({ oldLimit: gemsRoundLimit, newLimit: newLimit });
+        emit GemsRoundLimitUpdated({ oldLimit: gemsRoundLimit, newLimit: newLimit });
         gemsRoundLimit = newLimit;
     }
 
@@ -412,6 +421,17 @@ contract PreSale is Rounds, ReentrancyGuardTransient {
 
         emit DiscountUpdatedForUpperLimit({ oldDiscount: DISCOUNT_PPM, newDiscount: newDiscount });
         DISCOUNT_PPM = newDiscount;
+    }
+
+    /// @notice Updates the special round limit
+    /// @param newLimit The new special round limit in usd
+    function setSpecialRoundLimit(uint256 newLimit) external onlyOwner {
+        if (specialRoundLimit == newLimit) {
+            revert IdenticalValue();
+        }
+
+        emit SpecialRoundLimitUpdated({ oldLimit: specialRoundLimit, newLimit: newLimit });
+        specialRoundLimit = newLimit;
     }
 
     /// @notice Purchases presale token with ETH
@@ -451,7 +471,17 @@ contract PreSale is Rounds, ReentrancyGuardTransient {
 
         uint256 ethInUsdt = (msg.value * tokenInfo.latestPrice) / NORMALIZATION;
 
-        roundPrice = _checkBuyingLimitations(msg.sender, ethInUsdt, roundPrice);
+        if (rounds[round].isSpecialRound) {
+          
+            if (specialRoundBuying[msg.sender] + ethInUsdt > specialRoundLimit) {
+                // special round sale is only for up to 5000 USDT per user
+                revert MaxPurchaseLimit();
+            }
+
+            specialRoundBuying[msg.sender] += ethInUsdt;
+        } else {
+            roundPrice = _checkBuyingLimitations(msg.sender, ethInUsdt, roundPrice);
+        }
 
         TransferInfo memory transferInfo = _calculateTransferAmounts(msg.value, leaders, percentages);
         uint256 toReturn = _calculateAndUpdateTokenAmount(
@@ -550,6 +580,14 @@ contract PreSale is Rounds, ReentrancyGuardTransient {
             }
 
             gemsRoundBuying[msg.sender] += ethInUsdt;
+        } else if (rounds[round].isSpecialRound) {
+            
+            if (specialRoundBuying[msg.sender] + ethInUsdt > specialRoundLimit) {
+                // special round sale is only for up to 5000 USDT per user
+                revert MaxPurchaseLimit();
+            }
+
+            specialRoundBuying[msg.sender] += ethInUsdt;
         } else {
             roundPrice = _checkBuyingLimitations(msg.sender, ethInUsdt, roundPrice);
         }
@@ -808,7 +846,7 @@ contract PreSale is Rounds, ReentrancyGuardTransient {
 
         for (uint256 i; i < indexLength; ++i) {
             if (indexLength != i + 1) {
-              
+               
                 if (indexes[i] >= indexes[i + 1]) {
                     revert ArrayNotSorted();
                 }
@@ -866,7 +904,7 @@ contract PreSale is Rounds, ReentrancyGuardTransient {
         }
         //  If price feed isn't available,we fallback to the reference price
         if (tokenInfo.latestPrice == 0) {
-           
+          
             if (referenceTokenPrice == 0 || referenceNormalizationFactor == 0) {
                 revert ZeroValue();
             }

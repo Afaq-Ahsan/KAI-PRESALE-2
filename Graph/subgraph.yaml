@@ -8,9 +8,9 @@ dataSources:
     name: PreSale
     network: sepolia
     source:
-      address: "0x407D2ED6F6Fb00710B24744D141766151D59C6Ba"
+      address: "0x1a8655A30f9263F704e9D317469B3213925Ff3DA"
       abi: PreSale
-      startBlock: 10832909
+      startBlock: 10845306
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -31,6 +31,11 @@ dataSources:
         - SignerUpdated
         - TokenDataAdded
         - TokensAccessUpdated
+        - GemsRoundLimitUpdated
+        - LowerLimitUpdated
+        - UpperLimitUpdated
+        - DiscountUpdatedForUpperLimit
+        - SpecialRoundLimitUpdated
       abis:
         - name: PreSale
           file: ./abis/PreSale.json
@@ -69,14 +74,24 @@ dataSources:
           handler: handleTokenDataAdded
         - event: TokensAccessUpdated(indexed uint32,indexed address,indexed bool,uint256)
           handler: handleTokensAccessUpdated
+        - event: GemsRoundLimitUpdated(uint256,uint256)
+          handler: handleGemsRoundLimitUpdated
+        - event: LowerLimitUpdated(uint256,uint256)
+          handler: handleLowerLimitUpdated
+        - event: UpperLimitUpdated(uint256,uint256)
+          handler: handleUpperLimitUpdated
+        - event: DiscountUpdatedForUpperLimit(uint256,uint256)
+          handler: handleDiscountUpdatedForUpperLimit
+        - event: SpecialRoundLimitUpdated(uint256,uint256)
+          handler: handleSpecialRoundLimitUpdated
       file: ./src/pre-sale.ts
   - kind: ethereum
     name: Claims
     network: sepolia
     source:
-      address: "0xAd2911Fcdf65682682842C1Aa4C2a5F6Ce3B195C"
+      address: "0x8B4A43e914cCCb669841a5a0fbd085bbC528f549"
       abi: Claims
-      startBlock: 10832869
+      startBlock: 10845272
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7

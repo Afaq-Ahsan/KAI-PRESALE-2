@@ -49,10 +49,10 @@
     { "inputs": [], "name": "InvalidData", "type": "error" },
     { "inputs": [], "name": "InvalidEndTime", "type": "error" },
     { "inputs": [], "name": "InvalidPercentage", "type": "error" },
-    { "inputs": [], "name": "InvalidPurchase", "type": "error" },
     { "inputs": [], "name": "InvalidSignature", "type": "error" },
     { "inputs": [], "name": "InvalidStartTime", "type": "error" },
     { "inputs": [], "name": "MaxCapReached", "type": "error" },
+    { "inputs": [], "name": "MaxPurchaseLimit", "type": "error" },
     { "inputs": [], "name": "OnlyClaims", "type": "error" },
     { "inputs": [], "name": "OnlyOneTypeOfRoundCanActive", "type": "error" },
     {
@@ -70,6 +70,7 @@
     { "inputs": [], "name": "PriceLessThanOldRound", "type": "error" },
     { "inputs": [], "name": "PriceNotFound", "type": "error" },
     { "inputs": [], "name": "PriceNotUpdated", "type": "error" },
+    { "inputs": [], "name": "PurchaseOnlyAllowedWithGems", "type": "error" },
     { "inputs": [], "name": "ReentrancyGuardReentrantCall", "type": "error" },
     { "inputs": [], "name": "RoundEnded", "type": "error" },
     { "inputs": [], "name": "RoundIdNotUpdated", "type": "error" },
@@ -114,10 +115,19 @@
     {
         "anonymous": false,
         "inputs": [
+            { "indexed": false, "internalType": "uint256", "name": "oldDiscount", "type": "uint256" },
+            { "indexed": false, "internalType": "uint256", "name": "newDiscount", "type": "uint256" }
+        ],
+        "name": "DiscountUpdatedForUpperLimit",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
             { "indexed": false, "internalType": "uint256", "name": "oldLimit", "type": "uint256" },
             { "indexed": false, "internalType": "uint256", "name": "newLimit", "type": "uint256" }
         ],
-        "name": "GensRoundLimitUpdated",
+        "name": "GemsRoundLimitUpdated",
         "type": "event"
     },
     {
@@ -265,6 +275,15 @@
     {
         "anonymous": false,
         "inputs": [
+            { "indexed": false, "internalType": "uint256", "name": "oldLimit", "type": "uint256" },
+            { "indexed": false, "internalType": "uint256", "name": "newLimit", "type": "uint256" }
+        ],
+        "name": "SpecialRoundLimitUpdated",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
             { "indexed": false, "internalType": "contract IERC20", "name": "token", "type": "address" },
             {
                 "components": [
@@ -398,6 +417,13 @@
         "inputs": [],
         "name": "gemsRoundLimit",
         "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "getCurrentOngoingRound",
+        "outputs": [{ "internalType": "uint32", "name": "", "type": "uint32" }],
         "stateMutability": "view",
         "type": "function"
     },
@@ -552,6 +578,13 @@
         "type": "function"
     },
     {
+        "inputs": [{ "internalType": "uint256", "name": "newDiscount", "type": "uint256" }],
+        "name": "setDiscountForUpperLimit",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
         "inputs": [{ "internalType": "uint256", "name": "newLimit", "type": "uint256" }],
         "name": "setGemsRoundLimit",
         "outputs": [],
@@ -561,6 +594,13 @@
     {
         "inputs": [{ "internalType": "uint256", "name": "newLimit", "type": "uint256" }],
         "name": "setLowerLimit",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [{ "internalType": "uint256", "name": "newLimit", "type": "uint256" }],
+        "name": "setSpecialRoundLimit",
         "outputs": [],
         "stateMutability": "nonpayable",
         "type": "function"
@@ -595,6 +635,20 @@
         "inputs": [],
         "name": "signerWallet",
         "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [{ "internalType": "address", "name": "", "type": "address" }],
+        "name": "specialRoundBuying",
+        "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "specialRoundLimit",
+        "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
         "stateMutability": "view",
         "type": "function"
     },
